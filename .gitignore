@@ -3,8 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-#JBMC
+# JBMC
 src/jbmc
+
+# java extensions
+.class
+
+# capture folder
+capture/*
 
 # C extensions
 *.so

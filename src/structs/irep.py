@@ -2,9 +2,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from logger import logger
-
-
 class Type:
     def __init__(self, _type: dict[str, Any]) -> None:
         self._type: str = self.get_type(_type)

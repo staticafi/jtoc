@@ -4,7 +4,7 @@ from pathlib import Path
 
 from capture import parse_functions, capture, parse_symbols
 from logger import logger
-from processor import ProgramProcessor
+from processing.program_processor import ProgramProcessor
 
 
 def process_input(file: str, where_to: Path | None=None) -> None:
