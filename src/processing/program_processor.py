@@ -4,15 +4,17 @@ from logger import logger
 from processing.data import ProgramFunction, ProgramLine
 from processing.line_processor import LineProcessor
 from structs.function import GotoFunction
-from structs.irep import Type
+from structs.type import Type
 from structs.symbol_table import SymbolTable
 
 
 class ProgramProcessor:
     def __init__(self, symbols: SymbolTable) -> None:
         self.symbols = symbols
+        self.line_processor = LineProcessor(self.symbols)
         self.functions: dict[str, ProgramFunction] = {}
         self.classes: dict[str, ProgramFunction] = {}
+        self.static_vars: list[ProgramLine] = {}
 
     def translate_body(self, func: GotoFunction) -> list[ProgramLine]:
         logger.info(f'translating body of function {func.name}')
@@ -20,10 +22,10 @@ class ProgramProcessor:
 
         for instr in func.instructions:
             if instr.label:
-                label_line = f'{LineProcessor.unify_label(instr.label)}:'
+                label_line = f'{self.line_processor.unify_label(instr.label)}:'
                 lines.append(ProgramLine(line=label_line, indent=0))
 
-            for line in LineProcessor.get_line(instr):
+            for line in self.line_processor.get_line(instr):
                 lines.append(line)
 
         if 'main' in func.name:
@@ -37,7 +39,7 @@ class ProgramProcessor:
         arg_list: list[str] = []
         for arg_id in func.signature:
             arg_type = self.symbols.get_symbol_type(arg_id)
-            arg_name = LineProcessor.unify_symbol_name(arg_id)
+            arg_name = self.line_processor.unify_symbol_name(arg_id)
 
             arg_list.append(f'{arg_type} {arg_name}')
         
@@ -49,14 +51,14 @@ class ProgramProcessor:
     def translate(self, func: GotoFunction) -> ProgramFunction:
         logger.info(f'translating function {func.name}')
         body = self.translate_body(func)
-        name = LineProcessor.unify_func_name(func.name)
+        name = self.line_processor.unify_func_name(func.name)
         header = self.translate_header(func, name)
         return ProgramFunction(unified_name=name, body=body, header=header)
 
     def process(self, functions: list[GotoFunction]) -> None:
         translated: dict[str, ProgramFunction] = {}
         for f in functions:
-            if f.is_internal:
+            if f.is_internal and 'init' not in f.name:
                 continue
 
             program_func = self.translate(f)  # translate instructions in functions into lines
@@ -71,47 +73,62 @@ class ProgramProcessor:
 
             for component in components:
                 component_type = Type(component['namedSub']['type'])
-                component_name = LineProcessor.unify_symbol_name(component["namedSub"]["name"]["id"])
-                line = f'{component_type._type} {component_name}'
+                component_name = self.line_processor.unify_symbol_name(component["namedSub"]["name"]["id"])
+                line = f'{component_type._type} {component_name};'
                 lines.append(ProgramLine(line, indent=1))
 
             name = c['name']
-            header = f'struct {LineProcessor.unify_symbol_name(name)}'
-            lines.append(ProgramLine(line='}', indent=0))
+            header = f'struct {self.line_processor.unify_symbol_name(name)}'
+            lines.append(ProgramLine(line='};', indent=0))
             structs[name] = ProgramFunction(name, lines, header)
 
         self.classes = structs
 
+        static_vars: list[ProgramLine] = []
+        for name in self.symbols.get_static_variables():
+            var_type = self.symbols.get_symbol_type(name)
+            var_name = self.line_processor.unify_symbol_name(name)
+            var_value = self.line_processor.stringify(self.symbols.get_static_var_value(name))
+            line = ProgramLine(line = f'{var_type} {var_name} = {var_value};', indent=0)
+            static_vars.append(line)
+        
+        self.static_vars = static_vars
 
-    def write_to_stdout(self) -> str:
-        print('#include <stdio.h>\n')
+    def write_to_file(self, write_file: Path | None) -> None:
+        if not write_file:
+            file = None
+        else:
+            file = open(write_file, 'w')
+        
+        print('#include <stdio.h>', file=file)
+        print('#include <stdbool.h>', file=file)
+        print('#include <stdlib.h>', file=file)
 
+        print('// ========== STATIC SECTION ==========', file=file)
+        for line in self.static_vars:
+            print(str(line), file=file)
+        
+        print('\n', file=file)
+
+        print('// ========== STRUCTS SECTION ==========', file=file)
         for struct in self.classes.values():
-            print(str(struct.header), ';', sep='')
+            print(str(struct.header), ';', sep='', file=file)
 
-        print('\n')
+        print('\n', file=file)
         for name in self.classes:
-            if 'array' in name:
-                continue
-            print(str(self.classes[name]))
-            print('\n')
+            print(str(self.classes[name]), file=file)
+            print('\n', file=file)
+
+        print('// ========== FUNCTIONS SECTION ==========', file=file)
 
         for function in self.functions.values():
             if function.unified_name == 'main':
                 continue
 
-            print(str(function.header), ';', sep='')
+            print(str(function.header), ';', sep='', file=file)
     
-        print('\n')
+        print('\n', file=file)
 
         for function in self.functions.values():
-            print(str(function))
-            print('\n')
-
-    def write_to_file(self, file: Path) -> None:
-        with open(file, 'w') as file:
-            print('#include <stdio.h>', file=file)
-            print('#include <stdbool.h>\n', file=file)
-            if 'main' in self.functions:
-                print(self.functions['main'], file=file)
+            print(str(function), file=file)
             print('\n', file=file)

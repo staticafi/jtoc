@@ -16,15 +16,13 @@ def process_input(file: str, where_to: Path | None=None) -> None:
     processor = ProgramProcessor(symbols)
     processor.process(functions)
     
-    if where_to:
-        processor.write_to_file(where_to)
-    else:
-        processor.write_to_stdout()
+    processor.write_to_file(where_to)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in {2, 3}:
         logger.warning(f'Expected argument with path to the java file. Got {sys.argv}')
+        logger.warning('Optionally add path to file as output')
         sys.exit(1)
 
-    process_input(sys.argv[1])
+    process_input(sys.argv[1], sys.argv[2])

@@ -1,6 +1,7 @@
 from typing import Any
 
-from structs.irep import Type
+from structs.irep import Irep
+from structs.type import Type
 
 
 class SymbolTable:
@@ -22,4 +23,15 @@ class SymbolTable:
             classes.append(symbol)
 
         return classes
-            
+
+    def get_static_variables(self) -> list[str]:
+        return [name for name in self._symbols if self._symbols[name]['isStaticLifetime']]
+
+    def get_static_var_value(self, symbol: str) -> Irep:
+        return Irep.build(self._symbols[symbol]['value'])
+    
+    def is_static_symbol(self, symbol: str) -> bool:
+        if symbol not in self._symbols:
+            return False
+        
+        return self._symbols[symbol]['isStaticLifetime']

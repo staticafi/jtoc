@@ -9,7 +9,7 @@ from structs.call import Call
 from structs.decl import Decl
 from structs.goto import Goto
 from structs.instruction import Instruction
-from structs.irep import Type
+from structs.type import Type
 from structs.meta import GotoInstruction
 
 

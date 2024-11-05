@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from logger import logger
-from structs.irep import Irep, Type
+from structs.irep import Irep
 from structs.meta import Instruction, GotoInstruction
-
+from structs.type import Type
 
 @dataclass
 class FunctionInfo:
@@ -44,9 +44,6 @@ class Call(GotoInstruction):
         stream = self.arguments[0]
         return stream.id == 'symbol' or \
             stream.named_sub.identifier.id == 'java::java.lang.System.out'
-
-    def is_system_clinit_wrapper(self) -> bool:
-        return self.func_info.name == 'java::java.lang.System.<clinit_wrapper>'
 
     @staticmethod
     def build(instruction: dict[str, Any]) -> Call:
