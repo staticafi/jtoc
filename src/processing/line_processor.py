@@ -88,6 +88,8 @@ class LineProcessor:
         
         if arg_type == 'unsigned short int':
             formatting_str = '%lc\\n'
+        if arg_type in {'double', 'float'}:
+            formatting_str = '%f\\n'
 
         args = self.stringify(instr.arguments[1])
         return ProgramLine(line=f'printf("{formatting_str}", {args});', indent=1)
@@ -140,11 +142,11 @@ class LineProcessor:
             for sub in irep.sub:
                 fields.append(self.stringify(sub))
 
-            return f'{{ {", ".join(fields)} }}'
+            return f'({irep.named_sub.type._type}) {{ {", ".join(fields)} }}'
 
         if irep.id == 'member':
             member_name = self.unify_symbol_name(irep.named_sub.component_name.id)
-            return f'{self.stringify(irep.sub[0])}.{member_name}'
+            return f'({self.stringify(irep.sub[0])}).{member_name}'
         
         if irep.id == 'nil':
             return 'NULL'
@@ -181,6 +183,10 @@ class LineProcessor:
             left = self.unify_symbol_name(instr.get_left_name())
             if instr.left.id == 'dereference':
                 left = f'*{left}'
+            if instr.left.id == 'member':
+                left = self.stringify(instr.left)
+            if instr.get_left_name() == 'java::java.lang.Object.<init>:()V::to_construct':
+                left = f'struct java_lang_Object * {left}'
 
             return [ProgramLine(line=f'{left} = {right};', indent=1)]
 

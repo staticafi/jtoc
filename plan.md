@@ -22,7 +22,6 @@
 
 # 5. až 11.11.
 - threading
-- výstup do súboru ?
 - testy na benchmarkoch
 
 # 12.11. až 12.12.

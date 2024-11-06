@@ -25,4 +25,7 @@ if __name__ == '__main__':
         logger.warning('Optionally add path to file as output')
         sys.exit(1)
 
-    process_input(sys.argv[1], sys.argv[2])
+    arg2 = None
+    if len(sys.argv) == 3:
+        arg2 = sys.argv[2]
+    process_input(sys.argv[1], arg2)

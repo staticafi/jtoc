@@ -1,6 +1,5 @@
 public class ClassObject {
     private static int secretNum = 10;
-    // private static String password = "secretive";
     private double price;
 
     public ClassObject() {
