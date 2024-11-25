@@ -66,5 +66,5 @@ class Type:
         if type_info['id'] == 'string':
             return 'const char *'
         # logger.warning(f'unexpected irep type: {type_info["id"]}. {type_info}')
-        return "DON'T KNOW YET"
+        return "IDK"
 

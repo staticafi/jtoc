@@ -70,17 +70,9 @@ class LineProcessor:
     def unify_label(label_num: int) -> ProgramLine:
         return f'label{label_num}'
 
-    @staticmethod
-    def unify_func_name(func_name: str) -> str:
-        match = re.search(r"(\w*)::((\w*)\.)*([^:()]*){1}:?.*", func_name)
-        if not match:
-            logger.warning(f'[unify_func] name of function {func_name} does not confirm to regex')
-            return func_name
-
-        if match.group(4) in {'<clinit>', '<clinit_wrapper>', '<init>'}:
-            inside = re.search(r'<([^<>]*)>', match.group(4)).group(1)
-            return f'___{match.group(3)}_{inside}___'
-        return match.group(4)
+    def unify_func_name(self, func_name: str) -> str:
+        self.symbols.add_func_name(func_name)
+        return self.symbols.get_func_name(func_name)
 
     def handle_printf(self, instr: Call) -> ProgramLine:
         arg_type = instr.arguments[1].named_sub.type._type
@@ -129,7 +121,7 @@ class LineProcessor:
         
         if irep.id == 'dereference':
             return f'*({self.stringify(irep.sub[0])})'
-        
+
         if irep.id == 'address_of':
             return f'&({self.stringify(irep.sub[0])})'
 
@@ -152,7 +144,7 @@ class LineProcessor:
             return 'NULL'
 
         logger.warning(f'[stringify] unexpected irep type: {irep.id}')
-        return "DON'T KNOW YET"
+        return "IDK"
 
     def get_line(self, instr: GotoInstruction) -> list[ProgramLine]:
         if instr.instruction == Instruction.DECL:
@@ -177,12 +169,13 @@ class LineProcessor:
             assert isinstance(instr, Assign)
 
             right = self.stringify(instr.right)
-            if instr.is_return():
-                return [ProgramLine(line=f'return {right};', indent=1)]
-            
-            left = self.unify_symbol_name(instr.get_left_name())
-            if instr.left.id == 'dereference':
-                left = f'*{left}'
+            left = ''
+
+            if instr.is_dereference():
+                left = self.stringify(instr.left)
+            else:
+                left = self.unify_symbol_name(instr.get_left_name())
+
             if instr.left.id == 'member':
                 left = self.stringify(instr.left)
             if instr.get_left_name() == 'java::java.lang.Object.<init>:()V::to_construct':

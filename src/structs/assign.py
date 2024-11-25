@@ -21,11 +21,14 @@ class Assign(GotoInstruction):
         left_name = self.left.named_sub.identifier.id
         return left_name.endswith("#return_value")
 
+    def is_dereference(self) -> bool:
+        return self.left.id == 'dereference'
+
     def get_left_name(self) -> str:
         if self.left.id == 'member':
             return self.left.named_sub.component_name.id
         if self.left.id == 'dereference':
-            return self.left.sub[0].named_sub.identifier.id
+            return ''
     
         return self.left.named_sub.identifier.id
 
