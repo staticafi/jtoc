@@ -4,11 +4,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from capture import ROOT
 from process import process_input
-from logger import logger
-
-TEST_DIR = ROOT / 'tests'
+from static import logger, TEST_DIR, SOURCE_DIR, COMPILE_DIR
 
 
 @dataclass
@@ -56,14 +53,13 @@ class TestCase:
         self.result: TestResult | None = None
 
     def _compile_java(self) -> None:
-        os.chdir(ROOT / 'src')
-        process_input(TEST_DIR / f'{self.file}.class', TEST_DIR / 'out.c')
-        os.chdir(TEST_DIR)
+        process_input(TEST_DIR / f'{self.file}.class', COMPILE_DIR / 'out.c')
 
     def _compile_c(self, c_file: Path, out_name: str) -> bool:
         if not c_file.exists():
             logger.error(f'C file not found: {c_file.absolute()}')
 
+        os.chdir(COMPILE_DIR)
         result = subprocess.run(['gcc', '-std=c99', '-o', f'{out_name}.out', c_file.absolute()])
         if result.returncode != 0:
             logger.error(f'Error when compiling file {c_file.name}')
@@ -77,24 +73,19 @@ class TestCase:
         except RuntimeError:
             return TestResult(compilation=f'[compilation fail] {self.file} -> out.c')
 
-        compiled_file = TEST_DIR / 'out.c'
+        compiled_file = COMPILE_DIR / 'out.c'
 
         if not self._compile_c(compiled_file, 'a'):
-            compiled_file.unlink()
             return TestResult(compilation=f'[compilation fail] {compiled_file.name} -> a.out')
 
         return None
 
     def _run_compiled(self) -> bool:
-        c_binary = TEST_DIR / 'a.out'
+        c_binary = COMPILE_DIR / 'a.out'
         compiled = subprocess.run(c_binary)
         c_binary.unlink()
-        
-        j_binary = ROOT / 'src' / f'{self.file}.class'
-        os.chdir(ROOT / 'src')
+
         original = subprocess.run(['java', self.file])
-        os.chdir(TEST_DIR)
-        j_binary.unlink()
 
         return TestResult(provided=compiled, expected=original)
 
@@ -108,14 +99,14 @@ class TestCase:
 
 
 def clean_files() -> None:
-    files_to_delete = set(TEST_DIR.iterdir()) | set((ROOT / 'src').iterdir())
+    files_to_delete = set(COMPILE_DIR.iterdir())
     for file in files_to_delete:
         if file.suffix in {'.class', '.out'} or file.name == 'out.c':
             file.unlink()
 
 
 def load_test_cases() -> list[TestCase]:
-    files = {file.split('.')[0] for file in os.listdir(TEST_DIR)}
+    files = {file.name.split('.')[0] for file in TEST_DIR.iterdir()}
     results: list[TestCase] = []
 
     for file in files:

@@ -1,7 +1,8 @@
 from pathlib import Path
+from typing import TextIO
 
-from logger import logger
-from processing.data import ProgramFunction, ProgramLine
+from static import logger
+from processing.data import DeclLine, HeaderLine, InputArgument, ProgramFunction, ProgramLine, ProgramStaticVar, ProgramStruct, TextLine
 from processing.line_processor import LineProcessor
 from structs.function import GotoFunction
 from structs.type import Type
@@ -68,94 +69,178 @@ STRING_LIBRARY_FUNCTIONS = {
 }
 
 
-class ProgramProcessor:
-    def __init__(self, symbols: SymbolTable) -> None:
+STRING_LIBRARY_STRUCTS = {
+    'struct java_lang_Object',
+    'struct java_lang_AbstractStringBuilder',
+    'struct java_lang_CharSequence',
+    'struct java_lang_String',
+    'struct java_lang_StringBuilder',
+    'struct java_lang_StringBuffer'
+}
+
+
+class FunctionSection:
+    def __init__(self, processor: LineProcessor, symbols: SymbolTable, functions: list[GotoFunction]) -> None:
+        self.processor = processor
         self.symbols = symbols
-        self.line_processor = LineProcessor(self.symbols)
-        self.functions: dict[str, ProgramFunction] = {}
-        self.classes: dict[str, ProgramFunction] = {}
-        self.static_vars: list[ProgramLine] = {}
+        self.functions: list[ProgramFunction] = self._process_all(functions)
 
-    def translate_body(self, func: GotoFunction) -> list[ProgramLine]:
-        logger.info(f'translating body of function {func.name}')
-        lines: list[ProgramLine] = [ProgramLine(line='{', indent=0)]
-
-        for instr in func.instructions:
-            if instr.label:
-                label_line = f'{self.line_processor.unify_label(instr.label)}:'
-                lines.append(ProgramLine(line=label_line, indent=0))
-
-            for line in self.line_processor.get_line(instr):
-                lines.append(line)
-
-        if 'main' in func.name:
-            lines.append(ProgramLine(line='return 0;', indent=1))
-        lines.append(ProgramLine(line='}', indent=0))
-        return lines
-
-    def translate_header(self, func: GotoFunction, name: str) -> ProgramLine:
-        return_type = func.get_return_type()
-        
-        arg_list: list[str] = []
-        for arg_id in func.signature:
-            arg_type = self.symbols.get_symbol_type(arg_id)
-            arg_name = self.line_processor.unify_symbol_name(arg_id)
-
-            arg_list.append(f'{arg_type} {arg_name}')
-        
-        if name == 'main':
-            return ProgramLine('int main(int agrc, char **argv)', indent=0)
-
-        return ProgramLine(f'{return_type} {name}({", ".join(arg_list)})', indent=0)
-
-    def translate(self, func: GotoFunction) -> ProgramFunction:
-        logger.info(f'translating function {func.name}')
-        name = self.line_processor.unify_func_name(func.name)
-        body = self.translate_body(func)
-        header = self.translate_header(func, name)
-        return ProgramFunction(unified_name=name, body=body, header=header)
-
-    def process(self, functions: list[GotoFunction]) -> None:
-        translated: dict[str, ProgramFunction] = {}
+    def _process_all(self, functions: list[GotoFunction]) -> list[ProgramFunction]:
+        translated: list[ProgramFunction] = []
         for f in functions:
-            if '[' in f.name and ']' in f.name:
-                continue
-
             if f.name in STRING_LIBRARY_FUNCTIONS:
                 continue
 
-            program_func = self.translate(f)  # translate instructions in functions into lines
-            translated[program_func.unified_name] = program_func
+            program_func = self._process(f)
+            translated.append(program_func)
 
-        self.functions = translated
+        return translated
 
-        structs: dict[str, ProgramFunction] = {}
+    def _process_body(self, func: GotoFunction) -> list[ProgramLine]:
+        logger.info(f'translating body of function {func.name}')
+        lines: list[ProgramLine] = [TextLine(indent=0, text='{')]
+
+        for instr in func.instructions:
+            if instr.label:
+                label_line = f'{self.symbols.unify_label(instr.label)}:'
+                lines.append(TextLine(indent=0, text=label_line))
+
+            line = self.processor.get_line(instr)
+            if line:
+                lines.append(line)
+
+        if 'main' in func.name:
+            lines.append(TextLine(indent=1, text='return 0;'))
+        lines.append(TextLine(indent=0, text='}'))
+
+        return lines
+
+    def _process_header(self, func: GotoFunction, name: str) -> HeaderLine:
+        if name == 'main':
+            return HeaderLine.main_function_header
+
+        return_type = self.symbols.get_func_return_type(func.name)
+        unified_return_type = self.processor.unify_type(return_type)
+
+        arg_list: list[InputArgument] = []
+        for arg_id in func.signature:
+            arg_type = self.symbols.get_symbol_type(arg_id)
+            unified_type = self.processor.unify_type(arg_type)
+            unified_name = self.symbols.unify_symbol_name(arg_id)
+            arg_list.append(InputArgument(unified_type, unified_name))
+
+        return HeaderLine(return_type=unified_return_type, unified_name=name, args=arg_list)
+
+    def _process(self, func: GotoFunction) -> ProgramFunction:
+        logger.info(f'processing function {func.name}')
+        unified_name = self.symbols.unify_func_name(func.name)
+        body = self._process_body(func)
+        header = self._process_header(func, unified_name)
+
+        return ProgramFunction(unified_name=unified_name, body=body, header=header)
+
+    def write_to_file(self, write_to: TextIO | None) -> None:
+        print('// ========== FUNCTIONS SECTION ==========', file=write_to)
+
+        for function in self.functions:
+            if function.unified_name == 'main':
+                continue
+
+            print(str(function.header), ';', sep='', file=write_to)
+    
+        print('\n', file=write_to)
+
+        for function in self.functions:
+            print(str(function), file=write_to)
+            print('\n', file=write_to)
+
+
+class StructsSection:
+    def __init__(self, symbols: SymbolTable) -> None:
+        self.symbols = symbols
+        self.structs: list[ProgramStruct] = self._process() 
+
+    def _process(self) -> list[ProgramStruct]:
+        structs: list[ProgramStruct] = []
         for c in self.symbols.get_classes():
             components = c['type']['namedSub']['components']['sub']
-            lines: list[ProgramLine] = [ProgramLine(line='{', indent=0)]
+            unified_name = self.symbols.unify_symbol_name(c['name'])
+
+            if f'struct {unified_name}' in STRING_LIBRARY_STRUCTS:
+                continue
+
+            lines: list[DeclLine] = []
 
             for component in components:
                 component_type = Type(component['namedSub']['type'])
-                component_name = self.line_processor.unify_symbol_name(component["namedSub"]["name"]["id"])
-                line = f'{component_type._type} {component_name};'
-                lines.append(ProgramLine(line, indent=1))
+                component_name = self.symbols.unify_symbol_name(component["namedSub"]["name"]["id"])
+                line = DeclLine(indent=1, var_type=component_type, var_name=component_name, array_width=None)
+                lines.append(line)
 
-            name = c['name']
-            header = f'struct {self.line_processor.unify_symbol_name(name)}'
-            lines.append(ProgramLine(line='};', indent=0))
-            structs[name] = ProgramFunction(name, lines, header)
+            structs.append(ProgramStruct(unified_name=unified_name, body=lines))
 
-        self.classes = structs
+        return structs
 
-        static_vars: list[ProgramLine] = []
+    def write_to_file(self, write_to: TextIO | None) -> None:
+        print('// ========== STRUCTS SECTION ==========', file=write_to)
+        for struct in self.structs:
+            print(struct.header, file=write_to)
+
+        print('\n', file=write_to)
+
+        for struct in self.structs:
+            print(str(struct), file=write_to)
+            print('\n', file=write_to)
+
+
+class StaticSection:
+    def __init__(self, symbols: SymbolTable, processor: LineProcessor) -> None:
+        self.symbols = symbols
+        self.processor = processor
+        self.statics: list[ProgramStaticVar] = self._process()
+
+    def _process(self) -> list[ProgramStaticVar]:
+        static_vars: list[ProgramStaticVar] = []
         for name in self.symbols.get_static_variables():
+            var_name = self.symbols.unify_symbol_name(name)
             var_type = self.symbols.get_symbol_type(name)
-            var_name = self.line_processor.unify_symbol_name(name)
-            var_value = self.line_processor.stringify(self.symbols.get_static_var_value(name))
-            line = ProgramLine(line = f'{var_type} {var_name} = {var_value};', indent=0)
+            
+            if 'Literal' in var_name and var_name.endswith('_return_value'):
+                continue
+            
+            array_width = None
+            if var_type.is_array():
+                array_width = var_type.width
+
+            unified_type = self.processor.unify_type(var_type)
+            var_value = self.processor.to_expression(self.symbols.get_static_var_value(name)) 
+
+            line = ProgramStaticVar(unified_name=var_name, var_type=unified_type, 
+                                    array_width=array_width, assigned_value=var_value)
             static_vars.append(line)
+
+        return static_vars
+
+    def write_to_file(self, write_to: TextIO | None) -> None:
+        print('// ========== STATIC SECTION ==========', file=write_to)
+        for static_var in self.statics:
+            print(str(static_var), file=write_to)
         
-        self.static_vars = static_vars
+        print('\n', file=write_to)
+
+
+class ProgramProcessor:
+    def __init__(self, symbols: SymbolTable, functions: list[GotoFunction]) -> None:
+        self.symbols = symbols
+        line_processor = LineProcessor(self.symbols)
+        
+        self.functions = FunctionSection(line_processor, self.symbols, functions)
+        self.structs = StructsSection(self.symbols)
+        self.statics = StaticSection(self.symbols, line_processor)
+
+    def get_includes(self) -> str:
+        return '#include <stdio.h>\n#include <stdbool.h>\n' \
+               '#include <stdlib.h>\n\n#include "lib/jtoc_string.c"\n'
 
     def write_to_file(self, write_file: Path | None) -> None:
         if not write_file:
@@ -163,36 +248,11 @@ class ProgramProcessor:
         else:
             file = open(write_file, 'w')
         
-        print('#include <stdio.h>', file=file)
-        print('#include <stdbool.h>', file=file)
-        print('#include <stdlib.h>', file=file)
-        print('\n#include "lib/jtoc_string.c"', file=file)
-
-        print('// ========== STATIC SECTION ==========', file=file)
-        for line in self.static_vars:
-            print(str(line), file=file)
-        
-        print('\n', file=file)
-
-        print('// ========== STRUCTS SECTION ==========', file=file)
-        for struct in self.classes.values():
-            print(str(struct.header), ';', sep='', file=file)
-
-        print('\n', file=file)
-        for name in self.classes:
-            print(str(self.classes[name]), file=file)
-            print('\n', file=file)
-
-        print('// ========== FUNCTIONS SECTION ==========', file=file)
-
-        for function in self.functions.values():
-            if function.unified_name == 'main':
-                continue
-
-            print(str(function.header), ';', sep='', file=file)
-    
-        print('\n', file=file)
-
-        for function in self.functions.values():
-            print(str(function), file=file)
-            print('\n', file=file)
+        try:
+            print(self.get_includes(), file=file)
+            self.statics.write_to_file(write_to=file)
+            self.structs.write_to_file(write_to=file)
+            self.functions.write_to_file(write_to=file)
+        except:
+            if file and not file.closed:
+                file.close()

@@ -1,7 +1,8 @@
-import re
-
-from logger import logger
-from processing.data import ProgramLine
+from typing import Callable
+from static import logger
+from processing.data import AssignLine, DeclLine, FunctionCallLine, GotoLine, ProgramLine
+from processing.expressions import Address, Array, Constant, Dereference, Expression, ExpressionType, Index, Member, Nil, Operator, Pointer, SideEffect, Struct, StructTag, Symbol, \
+                                   Typecast, UnaryOperator, OPERATORS, UNARY_OPERATORS
 from structs.assign import Assign
 from structs.call import Call
 from structs.decl import Decl
@@ -10,69 +11,12 @@ from structs.instruction import Instruction
 from structs.irep import Irep
 from structs.meta import GotoInstruction
 from structs.symbol_table import SymbolTable
-
-
-UNARY_OPERATORS = {
-    'unary-': '-',
-    'not': '!',
-}
-
-OPERATORS = {
-    'shr': '>>',
-    'ashr': '>>',
-    'lshr': '>>',
-    'shl': '<<',
-    'bitand': '&',
-    'bitor': '|',
-    'bitxor': '^',
-    '+': '+',
-    '-': '-',
-    '*': '*',
-    '/': '/',
-    'mod': '%',
-    'notequal': '!=',
-    '=': '==',
-    '>': '>',
-    '>=': '>=',
-    '<': '<',
-    '<=': '<='
-}
+from structs.type import Type
 
 
 class LineProcessor:
     def __init__(self, symbols: SymbolTable) -> None:
         self.symbols = symbols
-
-    def unify_symbol_name(self, symbol: str) -> str:
-        if self.symbols.is_static_symbol(symbol):
-            sections = symbol.split('::')
-            symbol_name = '__'.join(sections[1:]).replace('.', '_')
-            if symbol_name.startswith('@'):
-                return f'___{symbol_name[1:]}___'
-            
-            result = re.search(r'(.*):.*#(\w*)', symbol_name)
-            if result:
-                new_symbol_name = f'{result.group(1)}_{result.group(2)}'
-                return new_symbol_name.replace('[', '__').replace(']', '__')
-
-            return '__'.join(sections[1:]).replace('.', '_')
-
-        var_name = symbol.split("::")[-1].replace('[', '__').replace(']', '__')
-        if symbol.startswith('@'):
-            return f'___{var_name[1:].replace(".", "_")}___'
-        if var_name.startswith('arg'):
-            return var_name
-        if var_name[0] in '0123456789':
-            return f'local_{var_name}'
-        return var_name.replace('.', '_')
-
-    @staticmethod
-    def unify_label(label_num: int) -> ProgramLine:
-        return f'label{label_num}'
-
-    def unify_func_name(self, func_name: str) -> str:
-        self.symbols.add_func_name(func_name)
-        return self.symbols.get_func_name(func_name)
 
     def handle_printf(self, instr: Call) -> ProgramLine:
         arg_type = instr.arguments[1].named_sub.type._type
@@ -86,111 +30,160 @@ class LineProcessor:
         args = self.stringify(instr.arguments[1])
         return ProgramLine(line=f'printf("{formatting_str}", {args});', indent=1)
 
-    def stringify(self, irep: Irep) -> str:
-        if irep.id == 'constant':
-            if irep.named_sub.type._type == 'const char *':
-                return f'"{irep.named_sub.value.id}"'
-            if irep.named_sub.type.is_pointer():
-                return irep.named_sub.value.id
-            if irep.named_sub.type._type == 'bool':
-                return str(irep.named_sub.value.id)
-            if irep.named_sub.type._type == 'signed char':
-                value = int(irep.named_sub.value.id, 16)
-                sign = int(value & 0x80 == 0x80)
-                return str((sign * -0x80) + (value & 0x7f))
-            return str(int(irep.named_sub.value.id, 16))
+    def to_c_value(self, irep: Irep) -> str:
+        assert irep.named_sub.type is not None
+        if irep.named_sub.type == 'const char *':
+            return f'"{irep.named_sub.value.id}"'
+        if irep.named_sub.type.is_pointer():
+            return irep.named_sub.value.id
+        if irep.named_sub.type == 'bool':
+            return str(irep.named_sub.value.id)
+        if irep.named_sub.type == 'signed char':
+            value = int(irep.named_sub.value.id, 16)
+            sign = int(value & 0x80 == 0x80)
+            return str((sign * -0x80) + (value & 0x7f))
+        return str(int(irep.named_sub.value.id, 16))
 
-        if irep.id == 'symbol':
-            return self.unify_symbol_name(irep.named_sub.identifier.id)
+    def to_expression(self, irep: Irep) -> Expression:
+        if irep.id == 'comma':
+            return self.to_expression(irep.sub[1])
 
-        if irep.id == 'typecast':
-            return f'({irep.named_sub.type}) ({self.stringify(irep.sub[0])})'
-
-        if irep.id in OPERATORS:
-            left, right = self.stringify(irep.sub[0]), self.stringify(irep.sub[1])
-            return f'({left}) {OPERATORS[irep.id]} ({right})'
-
-        if irep.id in UNARY_OPERATORS:
-            return f'{UNARY_OPERATORS[irep.id]} ({self.stringify(irep.sub[0])})'
-
-        if irep.id == 'struct_tag':
-            return f'struct {self.unify_symbol_name(irep.named_sub.identifier.id)}'
+        expr_type = ExpressionType.from_expr(irep.id)
         
-        if irep.id == 'pointer':
-            return f'{self.stringify(irep.sub[0])} *'
+        if expr_type == ExpressionType.Nil:
+            return Nil.build()
+
+        if expr_type == ExpressionType.Constant:
+            value = self.to_c_value(irep)
+            return Constant.build(value)
+
+        if expr_type == ExpressionType.Symbol:
+            original = irep.named_sub.identifier.id
+            unified = self.symbols.unify_symbol_name(original)
+            return Symbol.build(original, unified)
+
+        if expr_type == ExpressionType.Typecast:
+            typecast = self.unify_type(irep.named_sub.type)
+            expr = self.to_expression(irep.sub[0])
+            return Typecast.build(typecast, expr)
+
+        if expr_type == ExpressionType.Operator:
+            op = OPERATORS[irep.id]
+            left = self.to_expression(irep.sub[0])
+            right = self.to_expression(irep.sub[1])
+            return Operator.build(op, left, right)
+
+        if expr_type == ExpressionType.UnaryOperator:
+            op = UNARY_OPERATORS[irep.id]
+            value = self.to_expression(irep.sub[0])
+            return UnaryOperator.build(op, value)
+
+        if expr_type == ExpressionType.StructTag:
+            original = irep.named_sub.identifier.id
+            unified = self.symbols.unify_symbol_name(original)
+            symbol = Symbol.build(original, unified)
+            return StructTag.build(symbol)
+
+        if expr_type == ExpressionType.Pointer:
+            expr = self.to_expression(irep.sub[0])
+            return Pointer.build(expr)
+
+        if expr_type == ExpressionType.Dereference:
+            expr = self.to_expression(irep.sub[0])
+            return Dereference.build(expr)
+
+        if expr_type == ExpressionType.Address:
+            expr = self.to_expression(irep.sub[0])
+            return Address.build(expr)
+
+        if expr_type == ExpressionType.SideEffect:
+            effect = irep.named_sub.statement.id
+            args = [self.to_expression(arg) for arg in irep.sub]
+            return SideEffect.build(effect, args)
+
+        if expr_type == ExpressionType.Struct:
+            original = irep.named_sub.type.raw_name
+            unified = self.symbols.unify_symbol_name(original)
+            symbol = Symbol.build(original, unified)
+            args = [self.to_expression(sub) for sub in irep.sub]
+            return Struct.build(symbol, args)
+
+        if expr_type == ExpressionType.Member:
+            original = irep.named_sub.type.raw_name
+            unified = self.symbols.unify_symbol_name(original)
+            member = Symbol.build(original, unified)
+            obj = self.to_expression(irep.sub[0])
+            return Member.build(member, obj)
+
+        if expr_type == ExpressionType.Array:
+            assert irep.named_sub.type is not None
+            array_type = irep.named_sub.type
+            elements = [self.to_expression(sub) for sub in irep.sub]
+            return Array.build(array_type, elements)
+
+        if expr_type == ExpressionType.Index:
+            index = self.to_expression(irep.sub[1])
+            obj = self.to_expression(irep.sub[0])
+            return Index.build(index, obj)
+
+        logger.warning(f'[to_expression] fall-through with expr_type {expr_type}')
+
+    def unify_type(self, type_: Type | None) -> str:
+        if not type_:
+            return 'void'
+
+        if type_.is_struct():
+            unified = self.symbols.unify_symbol_name(type_.raw_name)
+            return f'struct {unified}'
         
-        if irep.id == 'dereference':
-            return f'*({self.stringify(irep.sub[0])})'
-
-        if irep.id == 'address_of':
-            return f'&({self.stringify(irep.sub[0])})'
-
-        if irep.id == 'side_effect':
-            if irep.named_sub.statement.id == 'allocate':
-                return f'malloc({self.stringify(irep.sub[0])})'
-
-        if irep.id == 'struct':
-            fields: list[str] = []
-            for sub in irep.sub:
-                fields.append(self.stringify(sub))
-
-            return f'({irep.named_sub.type._type}) {{ {", ".join(fields)} }}'
-
-        if irep.id == 'member':
-            member_name = self.unify_symbol_name(irep.named_sub.component_name.id)
-            return f'({self.stringify(irep.sub[0])}).{member_name}'
+        if type_.is_array():
+            return self.unify_type(type_.inside)
         
-        if irep.id == 'nil':
-            return 'NULL'
+        if type_.is_pointer():
+            return f'{self.unify_type(type_.inside)} *'
 
-        logger.warning(f'[stringify] unexpected irep type: {irep.id}')
-        return "IDK"
+        return type_.to_string()
 
-    def get_line(self, instr: GotoInstruction) -> list[ProgramLine]:
-        if instr.instruction == Instruction.DECL:
-            assert isinstance(instr, Decl)
-            var_name = self.unify_symbol_name(instr.name)
-            return [ProgramLine(line = f'{instr.var_type} {var_name};', indent=1)]
+    def process_decl(self, decl: Decl) -> ProgramLine:
+        var_name = self.symbols.unify_symbol_name(decl.name)
+        var_type = self.unify_type(decl.var_type)
+        array_width = None
 
-        if instr.instruction == Instruction.GOTO:
-            assert isinstance(instr, Goto)
-            label = self.unify_label(instr.target_to)
-            
-            if not instr.is_guarded():
-                return [ProgramLine(line=f'goto {label};', indent=1)]
+        if decl.var_type.is_array():
+            array_width = decl.var_type.width
 
-            guard = self.stringify(instr.guard)
-            return [
-                ProgramLine(line=f'if ({guard})', indent=1), 
-                ProgramLine(line=f'goto {label};', indent=2)
-            ]
+        return DeclLine(indent=1, var_type=var_type, var_name=var_name, array_width=array_width)
+
+    def process_assign(self, assign: Assign) -> ProgramLine:
+        right = self.to_expression(assign.right)
+        left = self.to_expression(assign.left)
+
+        return AssignLine(indent=1, lhs=left, rhs=right)
+
+    def process_goto(self, goto: Goto) -> ProgramLine:
+        label = self.symbols.unify_label(goto.target_to)
+        guard = None
+
+        if goto.is_guarded():
+            guard = self.to_expression(goto.guard)
         
-        if instr.instruction == Instruction.ASSIGN:
-            assert isinstance(instr, Assign)
+        return GotoLine(indent=1, guard=guard, goto_label=label)
 
-            right = self.stringify(instr.right)
-            left = ''
+    def process_call(self, call: Call) -> ProgramLine:
+        func_name = self.symbols.unify_func_name(call.func_info.name)
+        args = ', '.join([self.to_expression(irep) for irep in call.arguments])
+        
+        return FunctionCallLine(indent=1, func_name=func_name, args=args)
 
-            if instr.is_dereference():
-                left = self.stringify(instr.left)
-            else:
-                left = self.unify_symbol_name(instr.get_left_name())
+    def get_line(self, instr: GotoInstruction) -> ProgramLine | None:
+        process_functions: dict[Instruction, Callable[[GotoInstruction], ProgramLine]] = {
+            Instruction.DECL: self.process_decl,
+            Instruction.ASSIGN: self.process_assign,
+            Instruction.GOTO: self.process_goto,
+            Instruction.FUNCTION_CALL: self.process_call
+        } 
 
-            if instr.left.id == 'member':
-                left = self.stringify(instr.left)
-            if instr.get_left_name() == 'java::java.lang.Object.<init>:()V::to_construct':
-                left = f'struct java_lang_Object * {left}'
-
-            return [ProgramLine(line=f'{left} = {right};', indent=1)]
-
-        if instr.instruction == Instruction.FUNCTION_CALL:
-            assert isinstance(instr, Call)
-
-            if instr.is_printf():
-                return [self.handle_printf(instr)]
-
-            func_name = self.unify_func_name(instr.func_info.name)
-            args = ', '.join([self.stringify(irep) for irep in instr.arguments])
-            return [ProgramLine(line=f'{func_name}({args});', indent=1)]
-
-        return []
+        if instr.instruction not in process_functions:
+            return None
+        
+        return process_functions[instr.instruction](instr)

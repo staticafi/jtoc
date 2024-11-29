@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from logger import logger
+from static import logger
 from structs.irep import Irep
 from structs.meta import Instruction, GotoInstruction
 

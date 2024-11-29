@@ -9,26 +9,21 @@ from typing import Literal
 
 from structs import GotoFunction
 from structs.symbol_table import SymbolTable
-from logger import logger
-
-
-ROOT = Path('/home/miro/sbapr/playground')
-
-JBMC = ROOT / 'src' / 'jbmc'
-SOURCE_CODES = ROOT / 'tests'
-MAIN_PATH = ROOT / 'src'
+from static import logger, JBMC, COMPILE_DIR, CAPTURE_DIR, TEST_DIR
 
 
 class Capture:
     def __init__(self, filename: str, mode: Literal['goto', 'symbol']='goto') -> None:
         self._filename = filename
         self._mode = mode
+
+        os.chdir(COMPILE_DIR)
         self._json = self._capture(json_ui=True)
         self._normal = self._capture(json_ui=False)
 
     def _write_into_file(self, content: str, json_ui: bool) -> None:
         name = f'{self._mode}.{"json" if json_ui else "txt"}'
-        path = Path.cwd() / 'capture' / name
+        path = CAPTURE_DIR / name
         if not path.parent.exists():
             path.parent.mkdir()
         
@@ -56,8 +51,8 @@ class Capture:
 
 
 def compile(path: Path) -> None:
-    os.chdir(SOURCE_CODES)
-    pure_name = path.name.split('.')[0]
+    os.chdir(COMPILE_DIR)
+    pure_name = path.stem
 
     logger.info('compiling java files')
     compilation = subprocess.run(['javac', f'{pure_name}.java'])
@@ -65,21 +60,23 @@ def compile(path: Path) -> None:
     if compilation.returncode != 0:
         raise RuntimeError('compilation failed')
 
-    logger.info('moving compiled files')
-    shutil.move(SOURCE_CODES / f'{pure_name}.class', MAIN_PATH)
+    logger.info(f'compilation of file {pure_name}.java succesfull')
 
 
 def capture(filename: str) -> tuple[Capture, Capture]:
     logger.info(f'checking existence of provided file {filename}')
+    if not (TEST_DIR / f'{filename}.java').exists():
+        logger.error(f'could not find file {filename} on in directory {TEST_DIR}')
+        raise FileNotFoundError(f'{filename} could not be found')
 
-    path = MAIN_PATH / Path(f'{filename}.class')
-    if path.exists():
-        path.unlink()
+    path = COMPILE_DIR / Path(f'{filename}.java')
+    if not path.exists():
+        logger.info('moving java files into compile directory')
+        shutil.move(TEST_DIR / f'{filename}.java', COMPILE_DIR)
 
     compile(path)
 
     logger.info('capturing jbmc output')
-    os.chdir('/home/miro/sbapr/playground/src')
 
     goto = Capture(filename, mode='goto')
     symbol = Capture(filename, mode='symbol')

@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from logger import logger
+from static import logger
 from structs.irep import Irep
 from structs.type import Type
 
@@ -36,11 +36,18 @@ class SymbolTable:
     def is_static_symbol(self, symbol: str) -> bool:
         if symbol not in self._symbols:
             return False
-        
+
         return self._symbols[symbol]['isStaticLifetime']
     
     def get_func_name(self, symbol: str) -> str | None:
         return self._func_names.get(symbol)
+
+    def get_func_return_type(self, symbol: str) -> Type | None:
+        irep = self._symbols[symbol]['type']
+        if 'return_type' not in irep:
+            return None
+
+        return Type(irep['return_type'])
 
     def _unify_arg_list(self, matched: str) -> str:
         arg_list: list[str] = []
@@ -98,3 +105,34 @@ class SymbolTable:
 
         self._func_names[symbol] = unified_name
         return
+
+    def unify_symbol_name(self, symbol: str) -> str:
+        if self.is_static_symbol(symbol):
+            sections = symbol.split('::')
+            symbol_name = '__'.join(sections[1:]).replace('.', '_')
+            if symbol_name.startswith('@'):
+                return f'___{symbol_name[1:]}___'
+            
+            result = re.search(r'(.*):.*#(\w*)', symbol_name)
+            if result:
+                new_symbol_name = f'{result.group(1)}_{result.group(2)}'
+                return new_symbol_name.replace('[', '__').replace(']', '__')
+
+            return '__'.join(sections[1:]).replace('.', '_')
+
+        var_name = symbol.split("::")[-1].replace('[', '__').replace(']', '__')
+        if symbol.startswith('@'):
+            return f'___{var_name[1:].replace(".", "_")}___'
+        if var_name.startswith('arg'):
+            return var_name
+        if var_name[0] in '0123456789':
+            return f'local_{var_name}'
+        return var_name.replace('.', '_')
+
+    @staticmethod
+    def unify_label(label_num: int) -> str:
+        return f'label{label_num}'
+
+    def unify_func_name(self, func_name: str) -> str:
+        self.add_func_name(func_name)
+        return self.get_func_name(func_name)

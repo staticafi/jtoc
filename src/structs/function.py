@@ -3,13 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-from logger import logger
+from static import logger
 from structs.assign import Assign
 from structs.call import Call
 from structs.decl import Decl
 from structs.goto import Goto
 from structs.instruction import Instruction
-from structs.type import Type
 from structs.meta import GotoInstruction
 
 
@@ -20,17 +19,6 @@ class GotoFunction:
     is_internal: bool
     is_body_available: bool
     signature: list[str]  # list of identifiers
-
-    def get_return_type(self) -> str:
-        for instruction in self.instructions:
-            if instruction.instruction != Instruction.ASSIGN:
-                continue
-
-            instruction = cast(Assign, instruction)
-            if instruction.is_return():
-                return instruction.left.named_sub.type
-
-        return 'void'
 
     @staticmethod
     def construct_instruction(instr: dict[str, Any]) -> GotoInstruction:
@@ -58,7 +46,7 @@ class GotoFunction:
         kwargs = {
             'name': func['name'],
             'is_internal': bool(func['isInternal']),
-            'is_body_available': bool(func['isInternal']),
+            'is_body_available': bool(func['isBodyAvailable']),
             'instructions': instructions,
             'signature': [s['id'] for s in func['signature']]
         }
