@@ -10,7 +10,7 @@ src/jbmc
 *.class
 
 # capture folder
-capture/*
+src/capture/*
 
 # C extensions
 *.so

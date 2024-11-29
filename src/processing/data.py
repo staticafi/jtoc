@@ -89,7 +89,7 @@ class HeaderLine:
     unified_name: str
     args: list[InputArgument]
 
-    @property
+    @staticmethod
     def main_function_header() -> HeaderLine:
         args = [
             InputArgument(arg_type='int', arg_name='argc'),
@@ -141,5 +141,5 @@ class ProgramStaticVar:
 
     def __str__(self) -> str:
         if self.array_width:
-            return f'{self.var_type} {self.unified_name}[{self.array_width}] = {str(self.assigned_value)}'
-        return f'{self.var_type} {self.unified_name} = {str(self.assigned_value)}'
+            return f'{self.var_type} {self.unified_name}[{self.array_width}] = {str(self.assigned_value)};'
+        return f'{self.var_type} {self.unified_name} = {str(self.assigned_value)};'

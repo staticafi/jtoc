@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from static import logger
 from structs.instruction import Instruction
 from structs.irep import Irep
 from structs.source_info import SourceInfo
@@ -22,7 +23,8 @@ class GotoInstruction:
     @staticmethod
     def build(instruction: dict[str, Any]) -> GotoInstruction:
         parsed_instruction = Instruction[instruction['instructionId']]
-        
+        logger.debug(f'building {parsed_instruction.name} Instruction object')
+
         target = None
         if 'target' in instruction:
             target = int(instruction['target'])

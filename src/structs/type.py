@@ -13,12 +13,16 @@ class Types(Enum):
     String = 'string'
     Pointer = 'pointer'
     Array = 'array'
+    Other = 'other'
 
     @staticmethod
     def from_type_id(type_id: str) -> Types:
         if type_id == 'c_bool':
             return Types.Boolean
         
+        if type_id not in {type_.value for type_ in Types}:
+            return Types.Other
+
         return Types(type_id)
     
     def is_recursive(self) -> bool:
@@ -99,6 +103,9 @@ class Type:
         
         if self._type == Types.Array:
             return f'{str(self.inside)}[{self.width}]'
+        
+        if self._type == Types.Other:
+            return self.raw_name
 
     def _get_current_type(self, irep: dict[str, Any]) -> Types:
         type_info = irep
@@ -111,19 +118,34 @@ class Type:
         if not self._type.has_width():
             return -1
 
-        if self._type == Types.Array:
-            return int(irep['namedSub']['size']['namedSub']['value']['id'], 16)
+        type_info = irep
+        if irep['id'] in {'symbol', 'parameter'}:
+            type_info = irep['namedSub']['type']
 
-        return int(irep['namedSub']['width']['id'])
+        if self._type == Types.Array:
+            if type_info['namedSub']['size']['id'] == 'infinity':
+                return -1
+
+            return int(type_info['namedSub']['size']['namedSub']['value']['id'], 16)
+
+        return int(type_info['namedSub']['width']['id'])
 
     def _get_inside(self, irep: dict[str, Any]) -> Type | None:
         if not self._type.is_recursive():
             return None
 
-        return Type(irep['sub'][0])
+        type_info = irep
+        if irep['id'] in {'symbol', 'parameter'}:
+            type_info = irep['namedSub']['type']
+
+        return Type(type_info['sub'][0])
 
     def _get_raw_name(self, irep: dict[str, Any]) -> str | None:
-        if not self._type == Types.StructTag:
-            return None
+        if self._type == Types.StructTag:
+            return irep['namedSub']['identifier']['id']
 
-        return irep['namedSub']['identifier']['id']
+        if self._type == Types.Other:
+            return irep['id']
+        
+        return None
+

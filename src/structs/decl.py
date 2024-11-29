@@ -14,6 +14,8 @@ class Decl(GotoInstruction):
 
     @staticmethod
     def build(instruction: dict[str, Any]) -> Decl:
+        logger.debug('building Decl Instruction object')
+
         ops = instruction['operands']
         if not isinstance(ops, list) or len(ops) != 1:
             logger.warning(f'invalid operand list for DECL: {instruction["operands"]}')

@@ -98,7 +98,9 @@ class LineProcessor:
 
         if expr_type == ExpressionType.SideEffect:
             effect = irep.named_sub.statement.id
-            args = [self.to_expression(arg) for arg in irep.sub]
+            args = []
+            if effect == 'allocate':
+                args = [self.to_expression(arg) for arg in irep.sub]
             return SideEffect.build(effect, args)
 
         if expr_type == ExpressionType.Struct:
@@ -109,7 +111,7 @@ class LineProcessor:
             return Struct.build(symbol, args)
 
         if expr_type == ExpressionType.Member:
-            original = irep.named_sub.type.raw_name
+            original = irep.named_sub.component_name.id
             unified = self.symbols.unify_symbol_name(original)
             member = Symbol.build(original, unified)
             obj = self.to_expression(irep.sub[0])
@@ -171,7 +173,7 @@ class LineProcessor:
 
     def process_call(self, call: Call) -> ProgramLine:
         func_name = self.symbols.unify_func_name(call.func_info.name)
-        args = ', '.join([self.to_expression(irep) for irep in call.arguments])
+        args = ', '.join([str(self.to_expression(irep)) for irep in call.arguments])
         
         return FunctionCallLine(indent=1, func_name=func_name, args=args)
 

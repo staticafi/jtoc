@@ -80,9 +80,9 @@ STRING_LIBRARY_STRUCTS = {
 
 
 class FunctionSection:
-    def __init__(self, processor: LineProcessor, symbols: SymbolTable, functions: list[GotoFunction]) -> None:
-        self.processor = processor
+    def __init__(self, symbols: SymbolTable, processor: LineProcessor, functions: list[GotoFunction]) -> None:
         self.symbols = symbols
+        self.processor = processor
         self.functions: list[ProgramFunction] = self._process_all(functions)
 
     def _process_all(self, functions: list[GotoFunction]) -> list[ProgramFunction]:
@@ -98,7 +98,7 @@ class FunctionSection:
 
     def _process_body(self, func: GotoFunction) -> list[ProgramLine]:
         logger.info(f'translating body of function {func.name}')
-        lines: list[ProgramLine] = [TextLine(indent=0, text='{')]
+        lines: list[ProgramLine] = []
 
         for instr in func.instructions:
             if instr.label:
@@ -111,13 +111,12 @@ class FunctionSection:
 
         if 'main' in func.name:
             lines.append(TextLine(indent=1, text='return 0;'))
-        lines.append(TextLine(indent=0, text='}'))
 
         return lines
 
     def _process_header(self, func: GotoFunction, name: str) -> HeaderLine:
         if name == 'main':
-            return HeaderLine.main_function_header
+            return HeaderLine.main_function_header()
 
         return_type = self.symbols.get_func_return_type(func.name)
         unified_return_type = self.processor.unify_type(return_type)
@@ -156,8 +155,9 @@ class FunctionSection:
 
 
 class StructsSection:
-    def __init__(self, symbols: SymbolTable) -> None:
+    def __init__(self, symbols: SymbolTable, processor: LineProcessor) -> None:
         self.symbols = symbols
+        self.processor = processor
         self.structs: list[ProgramStruct] = self._process() 
 
     def _process(self) -> list[ProgramStruct]:
@@ -172,7 +172,7 @@ class StructsSection:
             lines: list[DeclLine] = []
 
             for component in components:
-                component_type = Type(component['namedSub']['type'])
+                component_type = self.processor.unify_type(Type(component['namedSub']['type']))
                 component_name = self.symbols.unify_symbol_name(component["namedSub"]["name"]["id"])
                 line = DeclLine(indent=1, var_type=component_type, var_name=component_name, array_width=None)
                 lines.append(line)
@@ -234,8 +234,8 @@ class ProgramProcessor:
         self.symbols = symbols
         line_processor = LineProcessor(self.symbols)
         
-        self.functions = FunctionSection(line_processor, self.symbols, functions)
-        self.structs = StructsSection(self.symbols)
+        self.functions = FunctionSection(self.symbols, line_processor, functions)
+        self.structs = StructsSection(self.symbols, line_processor)
         self.statics = StaticSection(self.symbols, line_processor)
 
     def get_includes(self) -> str:

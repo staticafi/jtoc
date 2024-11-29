@@ -6,13 +6,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-JBMC = ROOT / 'jbmc' / 'jbmc'
-CAPTURE_DIR = ROOT / 'capture'
-TEST_DIR = ROOT / 'tests'
 SOURCE_DIR = ROOT / 'src'
-COMPILE_DIR = ROOT / 'build'
+TEST_DIR = ROOT / 'tests'
+JBMC = SOURCE_DIR / 'jbmc' / 'jbmc'
+CAPTURE_DIR = SOURCE_DIR / 'capture'
+COMPILE_DIR = SOURCE_DIR / 'build'
 
 INDENT_WIDTH = 4
+
+CAPTURE_DIR.mkdir(exist_ok=True)
+COMPILE_DIR.mkdir(exist_ok=True)
 
 
 sh = logging.StreamHandler(stream=sys.stdout)

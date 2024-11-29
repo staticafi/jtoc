@@ -14,6 +14,8 @@ class Goto(GotoInstruction):
 
     @staticmethod
     def build(instruction: dict[str, Any]) -> Goto:
+        logger.debug('building Goto Instruction object')
+        
         guard = instruction['guard']
         if not isinstance(guard, dict):
             logger.warning(f'invalid guard for GOTO: {instruction["guard"]}')

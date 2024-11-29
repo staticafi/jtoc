@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from logger import logger
+from static import logger
 from structs.irep import Irep
 from structs.meta import Instruction, GotoInstruction
 from structs.type import Type
@@ -47,6 +47,8 @@ class Call(GotoInstruction):
 
     @staticmethod
     def build(instruction: dict[str, Any]) -> Call:
+        logger.debug('building Call Instruction object')
+
         ops = instruction['operands']
         if not isinstance(ops, list) or len(ops) != 3:
             logger.warning(f'invalid operand list for FUNCTION_CALL: {instruction["operands"]}')

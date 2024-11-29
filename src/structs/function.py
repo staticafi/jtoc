@@ -41,6 +41,7 @@ class GotoFunction:
         if set(func.keys()) != keys:
             logger.info(f'function does not have expected keys. Got {set(func.keys())}, expected {keys}')
         
+        logger.info(f'parsing function {func["name"]}')
         instructions = [GotoFunction.construct_instruction(instr) for instr in func['instructions']]
 
         kwargs = {

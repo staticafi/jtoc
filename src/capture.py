@@ -72,7 +72,7 @@ def capture(filename: str) -> tuple[Capture, Capture]:
     path = COMPILE_DIR / Path(f'{filename}.java')
     if not path.exists():
         logger.info('moving java files into compile directory')
-        shutil.move(TEST_DIR / f'{filename}.java', COMPILE_DIR)
+        shutil.copyfile(TEST_DIR / f'{filename}.java', COMPILE_DIR / f'{filename}.java')
 
     compile(path)
 
@@ -93,6 +93,7 @@ def get_functions(capture: Capture) -> dict:
 
 
 def parse_functions(capture: Capture) -> list[GotoFunction]:
+    logger.info('parsing captured functions')
     functions: list[GotoFunction] = []
 
     for func in get_functions(capture):

@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from logger import logger
+from static import logger
 from structs.irep import Irep
 from structs.meta import Instruction, GotoInstruction
 
@@ -34,6 +34,8 @@ class Assign(GotoInstruction):
 
     @staticmethod
     def build(instruction: dict[str, Any]) -> Assign:
+        logger.debug('building Assign Instruction object')
+        
         ops = instruction['operands']
         if not isinstance(ops, list) or len(ops) != 2:
             logger.warning(f'invalid operand list for ASSIGN: {instruction["operands"]}')
