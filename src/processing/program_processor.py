@@ -1,82 +1,12 @@
 from pathlib import Path
 from typing import TextIO
 
-from static import logger
+from static import logger, JTOC_LIBRARY_STRUCTS, JTOC_LIBRARY_FUNCTIONS
 from processing.data import DeclLine, HeaderLine, InputArgument, ProgramFunction, ProgramLine, ProgramStaticVar, ProgramStruct, TextLine
 from processing.line_processor import LineProcessor
 from structs.function import GotoFunction
 from structs.type import Type
 from structs.symbol_table import SymbolTable
-
-
-STRING_LIBRARY_FUNCTIONS = {
-    'java::java.lang.String.<init>:()V',
-    'java::java.lang.String.compareTo:(Ljava/lang/String;)I',
-    'java::java.lang.String.concat:(Ljava/lang/String;)Ljava/lang/String;',
-    'java::java.lang.String.contains:(Ljava/lang/CharSequence;)Z',
-    'java::java.lang.String.endsWith:(Ljava/lang/String;)Z',
-    'java::java.lang.String.equalsIgnoreCase:(Ljava/lang/String;)Z',
-    'java::java.lang.String.indexOf:(I)I',
-    'java::java.lang.String.indexOf:(II)I',
-    'java::java.lang.String.indexOf:(Ljava/lang/String;)I',
-    'java::java.lang.String.indexOf:(Ljava/lang/String;I)I',
-    'java::java.lang.String.isEmpty:()Z',
-    'java::java.lang.String.lastIndexOf:(I)I',
-    'java::java.lang.String.lastIndexOf:(II)I',
-    'java::java.lang.String.lastIndexOf:(Ljava/lang/String;)I',
-    'java::java.lang.String.lastIndexOf:(Ljava/lang/String;I)I',
-    'java::java.lang.String.length:()I',
-    'java::java.lang.String.replace:(CC)Ljava/lang/String;',
-    'java::java.lang.String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;',
-    'java::java.lang.String.startsWith:(Ljava/lang/String;)Z',
-    'java::java.lang.String.startsWith:(Ljava/lang/String;I)Z',
-    'java::java.lang.String.toLowerCase:()Ljava/lang/String;',
-    'java::java.lang.String.toString:()Ljava/lang/String;',
-    'java::java.lang.String.toUpperCase:()Ljava/lang/String;',
-    'java::java.lang.String.trim:()Ljava/lang/String;',
-    'java::java.lang.StringBuilder.<init>:(Ljava/lang/String;)V',
-    'java::java.lang.StringBuilder.<init>:(Ljava/lang/CharSequence;)V',
-    'java::java.lang.StringBuilder.<init>:()V',
-    'java::java.lang.StringBuilder.<init>:(I)V',
-    'java::java.lang.StringBuilder.append:(C)Ljava/lang/StringBuilder;',
-    'java::java.lang.StringBuilder.append:(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;',
-    'java::java.lang.StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;',
-    'java::java.lang.StringBuilder.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuilder;',
-    'java::java.lang.StringBuilder.appendCodePoint:(I)Ljava/lang/StringBuilder;',
-    'java::java.lang.StringBuilder.charAt:(I)C',
-    'java::java.lang.StringBuilder.codePointAt:(I)I',
-    'java::java.lang.StringBuilder.codePointBefore:(I)I',
-    'java::java.lang.StringBuilder.codePointCount:(II)I',
-    'java::java.lang.StringBuilder.length:()I',
-    'java::java.lang.StringBuilder.substring:(II)Ljava/lang/String;',
-    'java::java.lang.StringBuilder.substring:(I)Ljava/lang/String;',
-    'java::java.lang.StringBuilder.toString:()Ljava/lang/String;',
-    'java::java.lang.StringBuffer.<init>:(Ljava/lang/String;)V',
-    'java::java.lang.StringBuffer.<init>:()V',
-    'java::java.lang.StringBuffer.append:(C)Ljava/lang/StringBuffer;',
-    'java::java.lang.StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;',
-    'java::java.lang.StringBuffer.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuffer;',
-    'java::java.lang.StringBuffer.appendCodePoint:(I)Ljava/lang/StringBuffer;',
-    'java::java.lang.StringBuffer.codePointAt:(I)I',
-    'java::java.lang.StringBuffer.codePointBefore:(I)I',
-    'java::java.lang.StringBuffer.codePointCount:(II)I',
-    'java::java.lang.StringBuffer.length:()I',
-    'java::java.lang.StringBuffer.substring:(I)Ljava/lang/String;',
-    'java::java.lang.StringBuffer.toString:()Ljava/lang/String;',
-    'java::java.lang.CharSequence.charAt:(I)C',
-    'java::java.lang.CharSequence.toString:()Ljava/lang/String;',
-    'java::java.lang.CharSequence.length:()I',
-}
-
-
-STRING_LIBRARY_STRUCTS = {
-    'struct java_lang_Object',
-    'struct java_lang_AbstractStringBuilder',
-    'struct java_lang_CharSequence',
-    'struct java_lang_String',
-    'struct java_lang_StringBuilder',
-    'struct java_lang_StringBuffer'
-}
 
 
 class FunctionSection:
@@ -88,7 +18,7 @@ class FunctionSection:
     def _process_all(self, functions: list[GotoFunction]) -> list[ProgramFunction]:
         translated: list[ProgramFunction] = []
         for f in functions:
-            if f.name in STRING_LIBRARY_FUNCTIONS:
+            if f.name in JTOC_LIBRARY_FUNCTIONS:
                 continue
 
             program_func = self._process(f)
@@ -166,7 +96,7 @@ class StructsSection:
             components = c['type']['namedSub']['components']['sub']
             unified_name = self.symbols.unify_symbol_name(c['name'])
 
-            if f'struct {unified_name}' in STRING_LIBRARY_STRUCTS:
+            if unified_name in JTOC_LIBRARY_STRUCTS:
                 continue
 
             lines: list[DeclLine] = []
@@ -240,7 +170,7 @@ class ProgramProcessor:
 
     def get_includes(self) -> str:
         return '#include <stdio.h>\n#include <stdbool.h>\n' \
-               '#include <stdlib.h>\n\n#include "lib/jtoc_string.c"\n'
+               '#include <stdlib.h>\n\n#include "../lib/jtoc_lib.c"\n'
 
     def write_to_file(self, write_file: Path | None) -> None:
         if not write_file:

@@ -173,7 +173,7 @@ class LineProcessor:
 
     def process_call(self, call: Call) -> ProgramLine:
         func_name = self.symbols.unify_func_name(call.func_info.name)
-        args = ', '.join([str(self.to_expression(irep)) for irep in call.arguments])
+        args = [self.to_expression(irep) for irep in call.arguments]
         
         return FunctionCallLine(indent=1, func_name=func_name, args=args)
 

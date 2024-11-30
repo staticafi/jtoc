@@ -4,6 +4,8 @@
 #include <string.h>
 
 
+// ========== STRING SECTION ==========
+
 struct java_lang_Object
 {
     const char * ___class_identifier___;
@@ -41,7 +43,6 @@ struct java_lang_StringBuffer
     int length;
     char* data;
 };
-
 
 
 void ___String_init___(struct java_lang_String *this)
@@ -122,8 +123,8 @@ struct java_lang_String *toUpperCase_String__String(struct java_lang_String *thi
 
 bool equalsIgnoreCase_String_String_Z(struct java_lang_String *this, struct java_lang_CharSequence *other)
 {
-    struct java_lang_String *lowered_this = toLowerCase(this);
-    struct java_lang_String *lowered_other = toLowerCase(other);
+    struct java_lang_String *lowered_this = toLowerCase_String__String(this);
+    struct java_lang_String *lowered_other = toLowerCase_String__String((struct java_lang_String *) other);
 
     return strcmp(lowered_this->data, lowered_other->data) == 0;
 }
@@ -438,13 +439,13 @@ void ___StringBuilder_init_CharSequence___(struct java_lang_StringBuilder *this,
 }
 
 
-struct java_lang_StringBuilder *append_StringBuilder_C_StringBuilder(struct java_lang_StringBuilder * this, char ch)
+struct java_lang_StringBuilder *append_StringBuilder_I_StringBuilder(struct java_lang_StringBuilder * this, int ch)
 {
     int new_length = this->length + 1;
 
     char *new_str = malloc(new_length + 1);
     strcpy(new_str, this->data);
-    new_str[this->length] = ch;
+    new_str[this->length] = (char) ch;
     new_str[this->length + 1] = '\0';
 
     free(this->data);
@@ -641,13 +642,13 @@ void ___StringBuffer_init_String___(struct java_lang_StringBuffer *this, struct 
 }
 
 
-struct java_lang_StringBuffer *append_StringBuffer_C_StringBuffer(struct java_lang_StringBuffer * this, char ch)
+struct java_lang_StringBuffer *append_StringBuffer_I_StringBuffer(struct java_lang_StringBuffer * this, int ch)
 {
     int new_length = this->length + 1;
 
     char *new_str = malloc(new_length + 1);
     strcpy(new_str, this->data);
-    new_str[this->length] = ch;
+    new_str[this->length] = (int) ch;
     new_str[this->length + 1] = '\0';
 
     free(this->data);
@@ -806,61 +807,56 @@ struct java_lang_String *toString_CharSequence__String(struct java_lang_CharSequ
 }
 
 
-/*
-// java::java.lang.String.<init>:()V
-// java::java.lang.String.compareTo:(Ljava/lang/String;)I
-// java::java.lang.String.concat:(Ljava/lang/String;)Ljava/lang/String;
-// java::java.lang.String.contains:(Ljava/lang/CharSequence;)Z
-// java::java.lang.String.endsWith:(Ljava/lang/String;)Z
-// java::java.lang.String.equalsIgnoreCase:(Ljava/lang/String;)Z
-// java::java.lang.String.indexOf:(I)I
-// java::java.lang.String.indexOf:(II)I
-// java::java.lang.String.indexOf:(Ljava/lang/String;)I
-// java::java.lang.String.indexOf:(Ljava/lang/String;I)I
-// java::java.lang.String.isEmpty:()Z
-// java::java.lang.String.lastIndexOf:(I)I
-// java::java.lang.String.lastIndexOf:(II)I
-// java::java.lang.String.lastIndexOf:(Ljava/lang/String;)I
-// java::java.lang.String.lastIndexOf:(Ljava/lang/String;I)I
-// java::java.lang.String.length:()I
-// java::java.lang.String.replace:(CC)Ljava/lang/String;
-// java::java.lang.String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
-// java::java.lang.String.startsWith:(Ljava/lang/String;)Z
-// java::java.lang.String.startsWith:(Ljava/lang/String;I)Z
-// java::java.lang.String.toLowerCase:()Ljava/lang/String;
-// java::java.lang.String.toString:()Ljava/lang/String;
-// java::java.lang.String.toUpperCase:()Ljava/lang/String;
-// java::java.lang.String.trim:()Ljava/lang/String;
-// java::java.lang.StringBuilder.<init>:(Ljava/lang/String;)V
-// java::java.lang.StringBuilder.<init>:(Ljava/lang/CharSequence;)V
-// java::java.lang.StringBuilder.<init>:()V
-// java::java.lang.StringBuilder.<init>:(I)V
-// java::java.lang.StringBuilder.append:(C)Ljava/lang/StringBuilder;
-// java::java.lang.StringBuilder.append:(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;
-// java::java.lang.StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
-// java::java.lang.StringBuilder.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuilder;
-// java::java.lang.StringBuilder.appendCodePoint:(I)Ljava/lang/StringBuilder;
-// java::java.lang.StringBuilder.charAt:(I)C
-// java::java.lang.StringBuilder.codePointAt:(I)I
-// java::java.lang.StringBuilder.codePointBefore:(I)I
-// java::java.lang.StringBuilder.codePointCount:(II)I
-// java::java.lang.StringBuilder.length:()I
-// java::java.lang.StringBuilder.substring:(II)Ljava/lang/String;
-// java::java.lang.StringBuilder.substring:(I)Ljava/lang/String;
-// java::java.lang.StringBuilder.toString:()Ljava/lang/String;
-// java::java.lang.StringBuffer.<init>:(Ljava/lang/String;)V
-// java::java.lang.StringBuffer.<init>:()V
-// java::java.lang.StringBuffer.append:(C)Ljava/lang/StringBuffer;
-// java::java.lang.StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
-// java::java.lang.StringBuffer.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuffer;
-// java::java.lang.StringBuffer.appendCodePoint:(I)Ljava/lang/StringBuffer;
-// java::java.lang.StringBuffer.codePointAt:(I)I
-// java::java.lang.StringBuffer.codePointBefore:(I)I
-// java::java.lang.StringBuffer.codePointCount:(II)I
-// java::java.lang.StringBuffer.length:()I
-// java::java.lang.StringBuffer.substring:(I)Ljava/lang/String;
-// java::java.lang.StringBuffer.toString:()Ljava/lang/String;
-// java::java.lang.CharSequence.charAt:(I)C
-// java::java.lang.CharSequence.toString:()Ljava/lang/String;
-// java::java.lang.CharSequence.length:()I
-*/
+// ========== PRINTF SECTION ==========
+
+
+struct java_io_PrintStream {
+    const char * ___class_identifier___;
+};
+
+
+void println_PrintStream__V(struct java_io_PrintStream *this) {
+    printf("\n");
+}
+
+
+void println_PrintStream_I_V(struct java_io_PrintStream * this, int output)
+{
+    printf("%d\n", output);
+}
+
+
+void println_PrintStream_C_V(struct java_io_PrintStream *this, char output)
+{
+    printf("%c\n", output);
+}
+
+
+void println_PrintStream_String_V(struct java_io_PrintStream *this, struct java_lang_String *output)
+{
+    printf("%s\n", output->data);
+}
+
+
+void println_PrintStream_D_V(struct java_io_PrintStream *this, double output)
+{
+    printf("%lf\n", output);
+}
+
+
+void println_PrintStream_F_V(struct java_io_PrintStream *this, float output)
+{
+    printf("%f\n", output);
+}
+
+
+void println_PrintStream_J_V(struct java_io_PrintStream *this, long long output)
+{
+    printf("%lld\n", output);
+}
+
+
+void println_PrintStream_Object_V(struct java_io_PrintStream *this, struct java_lang_Object *output)
+{
+    printf("%s\n", output->___class_identifier___);
+}

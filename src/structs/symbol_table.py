@@ -80,7 +80,7 @@ class SymbolTable:
         if unified_name:
             return
 
-        match = re.search(r"(\w*)::((\w*)\.)*([^:()]*){1}:\(([^\)]*)\)(.+)", symbol)
+        match = re.search(r"(\w*)::(([\w\[\]]*)\.)*([^:()]*){1}:\(([^\)]*)\)(.+)", symbol)
         if not match:
             match = re.search(r"(\w*)::((\w*)\.)*([^:()]*){1}", symbol)
             if not match:
@@ -88,6 +88,7 @@ class SymbolTable:
                 return
 
         class_name, function_name = match.group(3), match.group(4)
+        class_name = class_name.replace('[', '__').replace(']', '__')
         unified_args = ""
 
         if len(match.groups()) > 4:
