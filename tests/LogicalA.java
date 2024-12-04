@@ -3,7 +3,7 @@ public class LogicalA {
         boolean t = true;
         boolean f = false;
         
-        boolean c = t && t;
+        boolean c = t && f;
         System.out.println(c);
     }
 }

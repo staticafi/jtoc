@@ -4,9 +4,6 @@ public class RelationalA {
         int b = 15;
         
         boolean c = a > b;
-        boolean d = a < b; 
-        boolean e = a >= b;
-        boolean f = a <= b; 
         System.out.println(c);
     }
 }

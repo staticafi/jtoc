@@ -8,7 +8,7 @@ public class ClassObject {
 
     public static void main(String[] args) {
         ClassObject c = new ClassObject();
-        System.out.println(c.secretNum);
+        System.out.println(ClassObject.secretNum);
         System.out.println(c.price);
     }
 }
