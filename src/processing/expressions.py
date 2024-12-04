@@ -204,8 +204,13 @@ class SideEffect(Expression):
         return SideEffect(expr_type=ExpressionType.SideEffect, effect=effect, args=args)
 
     def __str__(self) -> str:
+        effect = self.effect
+
+        if self.effect in {'allocate', 'java_new_array_data'}:
+            effect = 'malloc'
+
         args = ', '.join([str(a) for a in self.args])
-        return f'{self.effect}({args})'
+        return f'{effect}({args})'
 
 
 @dataclass
@@ -247,10 +252,11 @@ class Array(Expression):
     def __str__(self) -> str:
         elements = [str(a) for a in self.elements]
         if self.array_type == 'unsigned short int' and all([e.isdigit() for e in elements]):
-            chars = [f"'{chr(int(e))}'" for e in elements].extend(["'\\0'"])
+            chars = [f"'{chr(int(e))}'" for e in elements]
+            chars.append("'\\0'")
             array = ', '.join(chars)
             return f'{{ {array} }}'
-    
+
         array = ', '.join(elements)
         return f'{{ {array} }}'
 

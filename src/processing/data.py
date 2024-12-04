@@ -38,7 +38,13 @@ class AssignLine(ProgramLine):
 
     def __str__(self) -> str:
         indent = self.get_indent()
-        return f'{indent}{str(self.lhs)} = {str(self.rhs)};'
+        left = str(self.lhs)
+        right = str(self.rhs)
+
+        if left.endswith('return_value'):
+            return f'{indent}{left} = {right};\n{indent}return {right};'
+
+        return f'{indent}{left} = {right};'
 
 
 @dataclass
@@ -104,9 +110,8 @@ class HeaderLine:
 
 @dataclass
 class ProgramFunction:
-    unified_name: str
-    body: list[ProgramLine]
     header: HeaderLine
+    body: list[ProgramLine]
 
     def __str__(self) -> str:
         body = '\n'.join([str(line) for line in self.body])
@@ -141,5 +146,8 @@ class ProgramStaticVar:
 
     def __str__(self) -> str:
         if self.array_width:
+            if self.var_type in {'char', 'unsigned short int'}:
+                items = str(self.assigned_value)
+                return f'{self.var_type} {self.unified_name}[{self.array_width + 1}] = {items};'
             return f'{self.var_type} {self.unified_name}[{self.array_width}] = {str(self.assigned_value)};'
         return f'{self.var_type} {self.unified_name} = {str(self.assigned_value)};'

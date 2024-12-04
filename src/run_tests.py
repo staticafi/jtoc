@@ -3,9 +3,10 @@ import subprocess
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 from process import process_input
-from static import logger, TEST_DIR, SOURCE_DIR, COMPILE_DIR
+from static import logger, TEST_DIR, COMPILE_DIR
 
 
 @dataclass
@@ -82,10 +83,10 @@ class TestCase:
 
     def _run_compiled(self) -> bool:
         c_binary = COMPILE_DIR / 'a.out'
-        compiled = subprocess.run(c_binary)
+        compiled = subprocess.run(c_binary, capture_output=True)
         c_binary.unlink()
 
-        original = subprocess.run(['java', self.file])
+        original = subprocess.run(['java', self.file], capture_output=True)
 
         return TestResult(provided=compiled, expected=original)
 
@@ -99,10 +100,8 @@ class TestCase:
 
 
 def clean_files() -> None:
-    files_to_delete = set(COMPILE_DIR.iterdir())
-    for file in files_to_delete:
-        if file.suffix in {'.class', '.out'} or file.name == 'out.c':
-            file.unlink()
+    for file in COMPILE_DIR.iterdir():
+        file.unlink()
 
 
 def load_test_cases() -> list[TestCase]:
@@ -123,13 +122,36 @@ def test_all() -> None:
         test_case.test()
 
     logger.info(f"{'#' * 20} SUMMARY {'#' * 20}")
+    oks, fails = 0, 0
     for test_case in test_cases:
         logger.info(f'Test of file {test_case.file}: [{test_case.result.short_result()}]')
         test_case.result.print_summary()
         logger.info('-----')
+        if test_case.result._has_passed():
+            oks += 1
+        else:
+            fails += 1
+    logger.info(f'all tests: {len(test_cases)}, passed -> {oks}, failed -> {fails}')
+    logger.info(f'success rate: {oks / len(test_cases) * 100}%')
 
     clean_files()
 
+def test_one(filename: str) -> None:
+    root = filename.split('.')[0]
+    filepath = TEST_DIR / f'{root}.java'
+    if not filepath.exists():
+        logger.error(f'Could not find the file {filename} on path {filepath.absolute()}')
+        return
+
+    test_case = TestCase(java_file=root)
+    test_case.test()
+    logger.info(f'Test of file {test_case.file}: [{test_case.result.short_result()}]')
+    test_case.result.print_summary()
+    logger.info('-----')
+
 
 if __name__ == '__main__':
-    test_all()
+    if len(sys.argv) > 1:
+        test_one(sys.argv[1])
+    else: 
+        test_all()

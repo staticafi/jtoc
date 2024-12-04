@@ -84,6 +84,15 @@ def capture(filename: str) -> tuple[Capture, Capture]:
     return goto, symbol
 
 
+def capture_only(filename: str) -> tuple[Capture, Capture]:
+    logger.info('capturing jbmc output')
+
+    goto = Capture(filename, mode='goto')
+    symbol = Capture(filename, mode='symbol')
+
+    return goto, symbol
+
+
 def get_functions(capture: Capture) -> dict:
     for d in capture.get_json():
         if 'functions' in d:

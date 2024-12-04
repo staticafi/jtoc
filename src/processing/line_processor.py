@@ -100,7 +100,17 @@ class LineProcessor:
             effect = irep.named_sub.statement.id
             args = []
             if effect == 'allocate':
-                args = [self.to_expression(arg) for arg in irep.sub]
+                args = [self.to_expression(irep.sub[0])]
+            if effect == 'java_new_array_data':
+                elem_type = irep.named_sub.type.inside
+                unified_type = elem_type.to_string()
+                if elem_type.is_pointer() or 'String' in unified_type:
+                    unified_type = 'void *'
+
+                arg = Operator.build(op='*', 
+                    left=self.to_expression(irep.named_sub.size), 
+                    right=Constant.build(value=f'sizeof({unified_type})'))
+                args = [arg]
             return SideEffect.build(effect, args)
 
         if expr_type == ExpressionType.Struct:
@@ -120,7 +130,9 @@ class LineProcessor:
         if expr_type == ExpressionType.Array:
             assert irep.named_sub.type is not None
             array_type = irep.named_sub.type
-            elements = [self.to_expression(sub) for sub in irep.sub]
+            elements = []
+            if irep.sub:
+                elements = [self.to_expression(sub) for sub in irep.sub]
             return Array.build(array_type, elements)
 
         if expr_type == ExpressionType.Index:
@@ -147,6 +159,7 @@ class LineProcessor:
         return type_.to_string()
 
     def process_decl(self, decl: Decl) -> ProgramLine:
+        logger.debug('processing DECL line')
         var_name = self.symbols.unify_symbol_name(decl.name)
         var_type = self.unify_type(decl.var_type)
         array_width = None
@@ -157,12 +170,14 @@ class LineProcessor:
         return DeclLine(indent=1, var_type=var_type, var_name=var_name, array_width=array_width)
 
     def process_assign(self, assign: Assign) -> ProgramLine:
+        logger.debug('processing ASSIGN line')
         right = self.to_expression(assign.right)
         left = self.to_expression(assign.left)
 
         return AssignLine(indent=1, lhs=left, rhs=right)
 
     def process_goto(self, goto: Goto) -> ProgramLine:
+        logger.debug('processing GOTO line')
         label = self.symbols.unify_label(goto.target_to)
         guard = None
 
@@ -172,6 +187,7 @@ class LineProcessor:
         return GotoLine(indent=1, guard=guard, goto_label=label)
 
     def process_call(self, call: Call) -> ProgramLine:
+        logger.debug('processing CALL line')
         func_name = self.symbols.unify_func_name(call.func_info.name)
         args = [self.to_expression(irep) for irep in call.arguments]
         

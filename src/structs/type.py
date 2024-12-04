@@ -48,6 +48,9 @@ class Type:
         if not isinstance(other, str):
             return False
         
+        if self.is_array():
+            return self.get_array_elem_type() == other
+
         return self.to_string() == other
 
     def is_pointer(self) -> bool:
@@ -59,8 +62,8 @@ class Type:
     def is_struct(self) -> bool:
         return self._type == Types.StructTag
 
-    def get_array_info(self) -> tuple[Type, int]:
-        return self.inside, self.width
+    def get_array_elem_type(self) -> str:
+        return self.inside.to_string()
 
     def to_string(self) -> str:
         if self._type == Types.SignedBitVector:
@@ -96,13 +99,13 @@ class Type:
             return 'const char *'
 
         if self._type == Types.Pointer:
-            return f'{str(self.inside)} *'
+            return f'{self.inside.to_string()} *'
 
         if self._type == Types.StructTag:
             return f'struct {self.raw_name}'
         
         if self._type == Types.Array:
-            return f'{str(self.inside)}[{self.width}]'
+            return f'{self.inside.to_string()}[{self.width}]'
         
         if self._type == Types.Other:
             return self.raw_name

@@ -1,9 +1,36 @@
+from __future__ import annotations
+
 import re
+
+from dataclasses import dataclass
 from typing import Any
 
 from static import logger
 from structs.irep import Irep
 from structs.type import Type
+
+
+@dataclass
+class SymbolMatch:
+    class_name: str
+    function_name: str
+    args: str | None
+    return_type: str | None
+
+    @staticmethod
+    def match_symbol(symbol: str) -> SymbolMatch | None:
+        last_part = symbol.split('$')[-1].split('::')[-1]
+        match = re.search(r"(([\w\d\[\]]+\.)*)([<>\w\d\[\]]*)(:\(([^\)]*)\)(.+))?", last_part)
+        if match:
+            c_name = match.group(1).replace('[', '__').replace(']', '__').replace('.', '_')
+            f_name = f'lambda_{match.group(3)}' if match.group(3).isdigit() else match.group(3)
+            args = match.group(5)
+            return_type = match.group(6)
+
+            return SymbolMatch(class_name=c_name, function_name=f_name, args=args, return_type=return_type)
+
+        logger.warning(f'[add_func_name] name of function {symbol} does not confirm to any regex')
+        return None
 
 
 class SymbolTable:
@@ -80,53 +107,59 @@ class SymbolTable:
         if unified_name:
             return
 
-        match = re.search(r"(\w*)::(([\w\[\]]*)\.)*([^:()]*){1}:\(([^\)]*)\)(.+)", symbol)
-        if not match:
-            match = re.search(r"(\w*)::((\w*)\.)*([^:()]*){1}", symbol)
-            if not match:
-                logger.warning(f'[add_func_name] name of function {symbol} does not confirm to regex')
-                return
+        match = SymbolMatch.match_symbol(symbol)
+        unified_args = ''
+        unified_ret = ''
 
-        class_name, function_name = match.group(3), match.group(4)
-        class_name = class_name.replace('[', '__').replace(']', '__')
-        unified_args = ""
+        if match.args:
+            unified_args = self._unify_arg_list(match.args)
+        if match.return_type:
+            unified_ret = self._unify_return_type(match.return_type)
 
-        if len(match.groups()) > 4:
-            args, return_type = match.group(5), match.group(6)
-            unified_args = self._unify_arg_list(args)
-            unified_ret = self._unify_return_type(return_type)
-
-        if function_name in {'<clinit>', '<clinit_wrapper>', '<init>'}:
-            inside = re.search(r'<([^<>]*)>', function_name).group(1)
-            unified_name = f'___{class_name}_{inside}{"_" if unified_args else ""}{unified_args}___'
+        if match.function_name in {'<clinit>', '<clinit_wrapper>', '<init>'}:
+            inside = re.search(r'<([^<>]*)>', match.function_name).group(1)
+            unified_name = f'___{match.class_name}_{inside}{"_" if unified_args else ""}{unified_args}___'
         else:
-            unified_name = f'{function_name}_{class_name}_{unified_args}_{unified_ret}'
-            if function_name == 'main' and unified_args == 'String' and unified_ret == 'V':
+            unified_name = f'{match.function_name}_{match.class_name}_{unified_args}_{unified_ret}'
+            if match.function_name == 'main' and unified_args == 'String' and unified_ret == 'V':
                 unified_name = 'main'
 
         self._func_names[symbol] = unified_name
         return
 
-    def unify_symbol_name(self, symbol: str) -> str:
-        if self.is_static_symbol(symbol):
-            sections = symbol.split('::')
-            symbol_name = '__'.join(sections[1:]).replace('.', '_')
-            if symbol_name.startswith('@'):
+    def _replace_with_underscore(self, symbol: str) -> str:
+        chars: list[str] = []
+        for char in symbol:
+            new_char = char
+            if char in '[].()/:#;':
+                new_char = '_'
+            chars.append(new_char)
+
+        return ''.join(chars)
+
+    def unify_symbol_name(self, s: str) -> str:
+        symbol = s
+        if s.startswith('java::'):
+            symbol = s[6:]
+
+        if self.is_static_symbol(s):
+            last_section = symbol.split('$')[-1]
+
+            symbol_name = self._replace_with_underscore(last_section)
+            if last_section.startswith('@'):
                 return f'___{symbol_name[1:]}___'
-            
-            result = re.search(r'(.*):.*#(\w*)', symbol_name)
-            if result:
-                new_symbol_name = f'{result.group(1)}_{result.group(2)}'
-                return new_symbol_name.replace('[', '__').replace(']', '__')
 
-            return '__'.join(sections[1:]).replace('.', '_')
+            return symbol_name
 
-        var_name = symbol.split("::")[-1].replace('[', '__').replace(']', '__')
-        if symbol.startswith('@'):
+        last_section = symbol.split('$')[-1]
+        last_part = last_section.split('::')[-1]
+        var_name = self._replace_with_underscore(last_part)
+
+        if var_name.startswith('@'):
             return f'___{var_name[1:].replace(".", "_")}___'
-        if var_name.startswith('arg'):
-            return var_name
         if var_name[0] in '0123456789':
+            if 'lambda' in symbol:
+                return f'lambda_{var_name}'
             return f'local_{var_name}'
         return var_name.replace('.', '_')
 
