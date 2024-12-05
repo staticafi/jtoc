@@ -41,8 +41,8 @@ class AssignLine(ProgramLine):
         left = str(self.lhs)
         right = str(self.rhs)
 
-        if left.endswith('return_value'):
-            return f'{indent}{left} = {right};\n{indent}return {right};'
+        # if left.endswith('return_value'):
+        #     return f'{indent}{left} = {right};\n{indent}return {right};'
 
         return f'{indent}{left} = {right};'
 

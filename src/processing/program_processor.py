@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import TextIO
 
-from processing.expressions import Array, Constant, Expression, Nil, Symbol
+from processing.expressions import Array, Constant, Expression, Symbol
+from processing.malloc_call_pass import MallocPass
 from static import JTOC_LIBRARY_STATIC, logger, JTOC_LIBRARY_STRUCTS, JTOC_LIBRARY_FUNCTIONS
 from processing.data import AssignLine, DeclLine, FunctionCallLine, HeaderLine, InputArgument, ProgramFunction, ProgramLine, ProgramStaticVar, ProgramStruct, TextLine
 from processing.line_processor import LineProcessor
-import static
 from structs.function import GotoFunction
 from structs.type import Type
 from structs.symbol_table import SymbolTable
@@ -16,6 +16,7 @@ class FunctionSection:
         self.symbols = symbols
         self.processor = processor
         self.functions: list[ProgramFunction] = self._process_all(functions)
+        self._pass_through_functions()
 
     def _process_all(self, functions: list[GotoFunction]) -> list[ProgramFunction]:
         translated: list[ProgramFunction] = []
@@ -76,6 +77,11 @@ class FunctionSection:
 
         return ProgramFunction(header=header, body=body)
 
+    def _pass_through_functions(self) -> None:
+        malloc_pass = MallocPass(self.symbols)
+        for f in self.functions:
+            malloc_pass.pass_one_function(f)
+
     def write_to_file(self, write_to: TextIO | None) -> None:
         print('// ========== FUNCTIONS SECTION ==========', file=write_to)
 
@@ -90,9 +96,6 @@ class FunctionSection:
         for function in self.functions:
             print(str(function), file=write_to)
             print('\n', file=write_to)
-        
-        if 'main' not in [f.header.unified_name for f in self.functions]:
-            print(f'int main() {{\n{static.INDENT_WIDTH * " "}return 0;\n}}', file=write_to)
 
 
 class StructsSection:

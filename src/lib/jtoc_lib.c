@@ -50,6 +50,7 @@ int java_lang_String_compareTo__Ljava_lang_String__I_return_value = -1;
 struct java_lang_String *java_lang_String_concat__Ljava_lang_String__Ljava_lang_String__return_value = NULL;
 int java_lang_String_contains__Ljava_lang_CharSequence__Z_return_value = -1;
 int java_lang_String_endsWith__Ljava_lang_String__Z_return_value = -1;
+int java_lang_String_equals__Ljava_lang_Object__Z_return_value = -1;
 int java_lang_String_equalsIgnoreCase__Ljava_lang_String__Z_return_value = -1;
 int java_lang_String_indexOf__I_I_return_value = -1;
 int java_lang_String_indexOf__II_I_return_value = -1;
@@ -91,6 +92,7 @@ struct java_lang_StringBuffer *java_lang_StringBuffer_appendCodePoint__I_Ljava_l
 int java_lang_StringBuffer_codePointAt__I_I_return_value = -1;
 int java_lang_StringBuffer_codePointBefore__I_I_return_value = -1;
 int java_lang_StringBuffer_codePointCount__II_I_return_value = -1;
+char java_lang_StringBuffer_charAt__I_C_return_value = '\0';
 int java_lang_StringBuffer_length___I_return_value = -1;
 struct java_lang_String *java_lang_StringBuffer_substring__I_Ljava_lang_String__return_value = NULL;
 struct java_lang_String *java_lang_StringBuffer_toString___Ljava_lang_String__return_value = NULL;
@@ -184,6 +186,20 @@ struct java_lang_String *toUpperCase_java_lang_String___String(struct java_lang_
     *malloc_site = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, length, content };
     java_lang_String_toUpperCase___Ljava_lang_String__return_value = malloc_site;
     return malloc_site;
+}
+
+
+bool equals_java_lang_String__Object_Z(struct java_lang_String *this, struct java_lang_Object *other)
+{
+    if (strcmp(other->___class_identifier___, "java::java.lang.String") != 0) {
+        java_lang_String_equals__Ljava_lang_Object__Z_return_value = false;
+        return false;
+    }
+
+    struct java_lang_String *other_str = (struct java_lang_String *) other;
+    bool result = strcmp(this->data, other_str->data) == 0;
+    java_lang_String_equals__Ljava_lang_Object__Z_return_value = result;
+    return result;
 }
 
 
@@ -855,6 +871,19 @@ struct java_lang_StringBuffer *appendCodePoint_java_lang_StringBuffer__I_StringB
 }
 
 
+char charAt_java_lang_StringBuffer__I_C(struct java_lang_StringBuffer *this, int index)
+{
+    if (index < 0 || index > this->length) {
+        java_lang_StringBuffer_charAt__I_C_return_value = '\0';
+        return '\0';
+    }
+
+    char result = this->data[index];
+    java_lang_StringBuffer_charAt__I_C_return_value = result;
+    return result;
+}
+
+
 char codePointAt_java_lang_StringBuffer__I_I(struct java_lang_StringBuffer *this, int index)
 {
     if (index < 0 || index > this->length) {
@@ -996,13 +1025,13 @@ void println_java_io_PrintStream__String_V(struct java_io_PrintStream *this, str
 
 void println_java_io_PrintStream__D_V(struct java_io_PrintStream *this, double output)
 {
-    printf("%lf\n", output);
+    printf("%lg\n", output);
 }
 
 
 void println_java_io_PrintStream__F_V(struct java_io_PrintStream *this, float output)
 {
-    printf("%f\n", output);
+    printf("%g\n", output);
 }
 
 
@@ -1014,7 +1043,8 @@ void println_java_io_PrintStream__J_V(struct java_io_PrintStream *this, long lon
 
 void println_java_io_PrintStream__Object_V(struct java_io_PrintStream *this, struct java_lang_Object *output)
 {
-    printf("%s\n", output->___class_identifier___);
+    // printing the class identifier without the 'java::' prefix
+    printf("%s\n", output->___class_identifier___ + 6);
 }
 
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 from static import logger
-from structs.type import Type, Types
+from structs.type import Type
 
 
 UNARY_OPERATORS = {
@@ -31,7 +31,9 @@ OPERATORS = {
     '>': '>',
     '>=': '>=',
     '<': '<',
-    '<=': '<='
+    '<=': '<=',
+    'and': '&&',
+    'or': '||'
 }
 
 

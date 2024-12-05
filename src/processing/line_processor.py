@@ -1,4 +1,7 @@
+from ctypes import c_double, c_int, c_float, c_long, pointer, cast, POINTER
 from typing import Callable
+
+
 from static import logger
 from processing.data import AssignLine, DeclLine, FunctionCallLine, GotoLine, ProgramLine
 from processing.expressions import Address, Array, Constant, Dereference, Expression, ExpressionType, Index, Member, Nil, Operator, Pointer, SideEffect, Struct, StructTag, Symbol, \
@@ -38,6 +41,16 @@ class LineProcessor:
             return irep.named_sub.value.id
         if irep.named_sub.type == 'bool':
             return str(irep.named_sub.value.id)
+        if irep.named_sub.type == 'float':
+            i = int(irep.named_sub.value.id, 16); 
+            int_p = pointer(c_int(i))
+            cast_p = cast(int_p, POINTER(c_float))
+            return str(cast_p.contents.value)
+        if irep.named_sub.type == 'double':
+            i = int(irep.named_sub.value.id, 16); 
+            int_p = pointer(c_long(i))
+            cast_p = cast(int_p, POINTER(c_double))
+            return str(cast_p.contents.value)
         if irep.named_sub.type == 'signed char':
             value = int(irep.named_sub.value.id, 16)
             sign = int(value & 0x80 == 0x80)

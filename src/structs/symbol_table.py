@@ -100,6 +100,8 @@ class SymbolTable:
         ret_match = re.search(r'L(([\w]+/)*)(\w*);', ret)
         if ret_match:
             return ret_match.group(3)
+        if ret.startswith('['):
+            return f'{ret[1:]}array'
         return ret
 
     def add_func_name(self, symbol: str) -> None:
@@ -148,6 +150,8 @@ class SymbolTable:
             symbol_name = self._replace_with_underscore(last_section)
             if last_section.startswith('@'):
                 return f'___{symbol_name[1:]}___'
+            if symbol_name[0] in '0123456789':
+                return f'_{symbol_name}'
 
             return symbol_name
 
