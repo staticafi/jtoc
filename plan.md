@@ -20,7 +20,7 @@
 - array [OK]
 - výnimky [OK] 
 - threading []
-- testy na benchmarkoch [] PRIORITY
+- testy na benchmarkoch [X]
 
 - text bakalárky
     - úvod
@@ -55,5 +55,3 @@
         - limitácie môžu byť tu
         - plány čo ďalej - passy (ktoré, ako?), možno threading, keďže jbmc to podporuje
         - porovnanie výsledkov vykonávania programov v sv-comp
-
-
