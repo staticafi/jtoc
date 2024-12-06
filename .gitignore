@@ -1,4 +1,4 @@
- Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,7 +10,8 @@ src/jbmc
 *.class
 
 # capture folder
-src/capture/*
+capture/
+!src/capture
 
 # C extensions
 *.so
@@ -25,6 +26,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+out/
 parts/
 sdist/
 var/
