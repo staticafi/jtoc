@@ -2,13 +2,16 @@ import sys
 
 from pathlib import Path
 
-from capture import parse_functions, capture, parse_symbols
+from capture.compiling import parse_functions, capture, parse_symbols, compile, prepare_test_files
 from static import logger
 from processing.program_processor import ProgramProcessor
 
 
 def process_input(file: str, where_to: Path | None=None) -> None:
     classname = Path(file).stem
+
+    prepare_test_files(classname)
+    compile(classname)
     goto, symbol = capture(classname)
 
     functions = parse_functions(goto)

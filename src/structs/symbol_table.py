@@ -55,7 +55,10 @@ class SymbolTable:
         return classes
 
     def get_static_variables(self) -> list[str]:
-        return [name for name in self._symbols if self._symbols[name]['isStaticLifetime']]
+        return [name for name in self._symbols if self.is_static_symbol(name)]
+
+    def get_to_return_variables(self) -> list[str]:
+        return [name for name in self._symbols if self.is_to_return(name)]
 
     def get_static_var_value(self, symbol: str) -> Irep:
         return Irep.build(self._symbols[symbol]['value'])
@@ -66,6 +69,12 @@ class SymbolTable:
 
         return self._symbols[symbol]['isStaticLifetime']
     
+    def is_to_return(self, symbol: str) -> bool:
+        if symbol not in self._symbols:
+            return False
+
+        return symbol.endswith('::to_return')
+
     def get_func_name(self, symbol: str) -> str | None:
         return self._func_names.get(symbol)
 
@@ -133,7 +142,7 @@ class SymbolTable:
         chars: list[str] = []
         for char in symbol:
             new_char = char
-            if char in '[].()/:#;':
+            if char in '[].()/:#;@':
                 new_char = '_'
             chars.append(new_char)
 
@@ -144,7 +153,7 @@ class SymbolTable:
         if s.startswith('java::'):
             symbol = s[6:]
 
-        if self.is_static_symbol(s):
+        if self.is_static_symbol(s) or self.is_to_return(s):
             last_section = symbol.split('$')[-1]
 
             symbol_name = self._replace_with_underscore(last_section)
@@ -159,7 +168,7 @@ class SymbolTable:
         last_part = last_section.split('::')[-1]
         var_name = self._replace_with_underscore(last_part)
 
-        if var_name.startswith('@'):
+        if last_part.startswith('@'):
             return f'___{var_name[1:].replace(".", "_")}___'
         if var_name[0] in '0123456789':
             if 'lambda' in symbol:

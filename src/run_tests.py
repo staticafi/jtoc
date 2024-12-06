@@ -1,11 +1,12 @@
 import os
+import shutil
 import subprocess
+import sys
 
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 
-from process import process_input
+from jtoc import process_input
 from static import logger, TEST_DIR, COMPILE_DIR
 
 
@@ -100,8 +101,8 @@ class TestCase:
 
 
 def clean_files() -> None:
-    for file in COMPILE_DIR.iterdir():
-        file.unlink()
+    shutil.rmtree(COMPILE_DIR)
+    COMPILE_DIR.mkdir()
 
 
 def load_test_cases() -> list[TestCase]:
@@ -135,6 +136,7 @@ def test_all() -> None:
     logger.info(f'success rate: {oks / len(test_cases) * 100}%')
 
     clean_files()
+
 
 def test_one(filename: str) -> None:
     root = filename.split('.')[0]

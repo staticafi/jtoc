@@ -1,9 +1,10 @@
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-// ========== STRING SECTION ==========
+// ========== STRING STRUCTS SECTION ==========
 
 struct java_lang_Object
 {
@@ -100,6 +101,9 @@ struct java_lang_String *java_lang_StringBuffer_toString___Ljava_lang_String__re
 char java_lang_CharSequence_charAt__I_C_return_value = '\0';
 int java_lang_CharSequence_length___I_return_value = -1;
 struct java_lang_String *java_lang_CharSequence_toString___Ljava_lang_String__return_value = NULL;
+
+
+// ========== STRING FUNCTIONS SECTION ==========
 
 
 void ___java_lang_String__init___(struct java_lang_String *this)
@@ -1051,4 +1055,118 @@ void println_java_io_PrintStream__Object_V(struct java_io_PrintStream *this, str
 void println_java_io_PrintStream__Z_V(struct java_io_PrintStream *this, bool output)
 {
     printf("%s\n", (output) ? "true": "false");
+}
+
+
+// ========== SV-COMP VERIFIER SECTION ==========
+
+
+struct org_sosy_lab_sv_benchmarks_Verifier {
+    struct java_lang_Object ___java_lang_Object___;
+};
+
+
+bool org_sosy_lab_sv_benchmarks_Verifier_nondetBoolean___Z_return_value = false;
+signed char org_sosy_lab_sv_benchmarks_Verifier_nondetByte___B_return_value = 0;
+unsigned short int org_sosy_lab_sv_benchmarks_Verifier_nondetChar___C_return_value = '\0';
+double org_sosy_lab_sv_benchmarks_Verifier_nondetDouble___D_return_value = 0.0;
+float org_sosy_lab_sv_benchmarks_Verifier_nondetFloat___F_return_value = 0.0f;
+int org_sosy_lab_sv_benchmarks_Verifier_nondetInt___I_return_value = 0;
+long long int org_sosy_lab_sv_benchmarks_Verifier_nondetLong___J_return_value = 0;
+short int org_sosy_lab_sv_benchmarks_Verifier_nondetShort___S_return_value = 0;
+struct java_lang_String * org_sosy_lab_sv_benchmarks_Verifier_nondetString___Ljava_lang_String__return_value = NULL;
+
+
+void assume_org_sosy_lab_sv_benchmarks_Verifier__Z_V(bool expression)
+{
+    if (!expression) {
+loop_label: 
+        goto loop_label; 
+    }
+    return;
+}
+
+
+bool nondetBoolean_org_sosy_lab_sv_benchmarks_Verifier___Z()
+{
+    bool val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetBoolean___Z_return_value = val;
+    return val;
+}
+
+
+signed char nondetByte_org_sosy_lab_sv_benchmarks_Verifier___B()
+{
+    signed char val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetByte___B_return_value = val;
+    return val;
+}
+
+
+unsigned short nondetChar_org_sosy_lab_sv_benchmarks_Verifier___C()
+{
+    unsigned short val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetChar___C_return_value = val;
+    return val;
+}
+
+
+double nondetDouble_org_sosy_lab_sv_benchmarks_Verifier___D()
+{
+    double val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetDouble___D_return_value = val;
+    return val;
+}
+
+
+float nondetFloat_org_sosy_lab_sv_benchmarks_Verifier___F()
+{
+    float val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetFloat___F_return_value = val;
+    return val;    
+}
+
+
+int nondetInt_org_sosy_lab_sv_benchmarks_Verifier___I()
+{
+    int val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetInt___I_return_value = val;
+    return val;
+}
+
+
+long long nondetLong_org_sosy_lab_sv_benchmarks_Verifier___J()
+{
+    long long val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetLong___J_return_value = val;
+    return val;
+}
+
+
+short nondetShort_org_sosy_lab_sv_benchmarks_Verifier___S()
+{
+    short val;
+    org_sosy_lab_sv_benchmarks_Verifier_nondetShort___S_return_value = val;
+    return val;
+}
+
+
+struct java_lang_String *nondetString_org_sosy_lab_sv_benchmarks_Verifier___String()
+{
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    size_t charset_size = 62;
+    
+    unsigned char random_length;
+    int length = (int) ((3 + random_length) % charset_size);
+    char *content = malloc(length);
+
+    for (size_t i = 0; i < length - 1; i++) {
+        content[i] = charset[rand() % charset_size];
+    }
+    content[length] = '\0';
+
+    struct java_lang_String *malloc_site = malloc(16);
+    *malloc_site = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, length - 1, content };
+    org_sosy_lab_sv_benchmarks_Verifier_nondetString___Ljava_lang_String__return_value = malloc_site;
+    return malloc_site; 
 }

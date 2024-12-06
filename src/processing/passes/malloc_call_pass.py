@@ -1,13 +1,16 @@
-from processing.data import AssignLine, ProgramFunction, ProgramLine
-from processing.expressions import Constant, ExpressionType, SideEffect, Symbol
+from processing.expressions.expressions import Constant, ExpressionType, SideEffect, Symbol
+from processing.passes.program_pass import ProgramPass
+from processing.program_parts.complex import ProgramFunction
+from processing.program_parts.lines import AssignLine, ProgramLine
 from structs.symbol_table import SymbolTable
 
 
-class MallocPass:
-    def __init__(self, symbols: SymbolTable) -> None:
+class MallocPass(ProgramPass):
+    def __init__(self, symbols: SymbolTable, functions: list[ProgramFunction]) -> None:
         self.symbols = symbols
+        self.functions = functions
 
-    def contains_malloc(self, line: ProgramLine) -> bool:
+    def _contains_malloc(self, line: ProgramLine) -> bool:
         if not isinstance(line, AssignLine):
             return False
         
@@ -26,20 +29,26 @@ class MallocPass:
         lhs_type = self.symbols.get_symbol_type(line.lhs.original)
         return lhs_type.is_pointer()
 
-    def correct_malloc_size(self, line: AssignLine) -> None:
+    def _correct_malloc_size(self, line: AssignLine) -> None:
         assert isinstance(line.lhs, Symbol)
         assert isinstance(line.rhs, SideEffect)
 
         lhs_type = self.symbols.get_symbol_type(line.lhs.original)
         pointer_to = lhs_type.inside
         assert pointer_to is not None
+        
+        # this if shouldn't happen in normal user-written code, only in JBMC backend
+        if pointer_to.is_array():
+            return
 
         first_arg = Constant.build(f'sizeof(struct {self.symbols.unify_symbol_name(pointer_to.raw_name)})')
         line.rhs.args[0] = first_arg
 
-    def pass_one_function(self, function: ProgramFunction) -> None:
+    def _pass_one_function(self, function: ProgramFunction) -> None:
         for line in function.body:
-            if self.contains_malloc(line):
-                self.correct_malloc_size(line)
+            if self._contains_malloc(line):
+                self._correct_malloc_size(line)
 
-            
+    def do_the_pass(self) -> None:
+        for f in self.functions:
+            self._pass_one_function(f)

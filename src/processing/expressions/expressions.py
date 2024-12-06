@@ -1,71 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-
-from static import logger
-from structs.type import Type
-
-
-UNARY_OPERATORS = {
-    'unary-': '-',
-    'not': '!',
-}
-
-
-OPERATORS = {
-    'shr': '>>',
-    'ashr': '>>',
-    'lshr': '>>',
-    'shl': '<<',
-    'bitand': '&',
-    'bitor': '|',
-    'bitxor': '^',
-    '+': '+',
-    '-': '-',
-    '*': '*',
-    '/': '/',
-    'mod': '%',
-    'notequal': '!=',
-    '=': '==',
-    '>': '>',
-    '>=': '>=',
-    '<': '<',
-    '<=': '<=',
-    'and': '&&',
-    'or': '||'
-}
-
-
-
-class ExpressionType(Enum):
-    Nil = 'nil'
-    Constant = 'constant'
-    Symbol = 'symbol'
-    Typecast = 'typecast'
-    Operator = 'operator'
-    UnaryOperator = 'unary_operator'
-    StructTag = 'struct_tag'
-    Pointer = 'pointer'
-    Dereference = 'dereference'
-    Address = 'address_of'
-    SideEffect = 'side_effect'
-    Struct = 'struct'
-    Member = 'member'
-    Array = 'array'
-    Index = 'index'
-
-    @staticmethod
-    def from_expr(expr: str) -> ExpressionType:
-        if expr in OPERATORS:
-            return ExpressionType.Operator
-        if expr in UNARY_OPERATORS:
-            return ExpressionType.UnaryOperator
-        if expr not in {type_.value for type_ in ExpressionType}:
-            logger.info(f'[from_expr] unexpected expr {expr}')
-            return ExpressionType.Nil
-
-        return ExpressionType(expr)
+from processing.expressions.expression_type import ExpressionType
+from structs.type import Type, Types
 
 
 @dataclass
@@ -200,16 +137,40 @@ class Address(Expression):
 class SideEffect(Expression):
     effect: str
     args: list[Expression]
+    nondet_type: Type | None
 
     @staticmethod
-    def build(effect: str, args: list[Expression]) -> SideEffect:
-        return SideEffect(expr_type=ExpressionType.SideEffect, effect=effect, args=args)
+    def build(effect: str, args: list[Expression], nondet_type: Type | None) -> SideEffect:
+        return SideEffect(expr_type=ExpressionType.SideEffect, effect=effect, args=args, nondet_type=nondet_type)
+
+    @staticmethod
+    def _get_nondet_unified_func_name(_type: Type) -> str:
+        if _type == 'bool':
+            return 'nondetBoolean_org_sosy_lab_sv_benchmarks_Verifier___Z'
+        if _type == 'double':
+            return 'nondetDouble_org_sosy_lab_sv_benchmarks_Verifier___D'
+        if _type == 'float':
+            return 'nondetFloat_org_sosy_lab_sv_benchmarks_Verifier___F'
+        if _type == 'int':
+            return 'nondetInt_org_sosy_lab_sv_benchmarks_Verifier___I'
+        if _type == 'long long int':
+            return 'nondetLong_org_sosy_lab_sv_benchmarks_Verifier___J'
+        if _type == 'char' or _type == 'unsigned short int':
+            return 'nondetChar_org_sosy_lab_sv_benchmarks_Verifier___C'
+        if _type == 'signed char':
+            return 'nondetByte_org_sosy_lab_sv_benchmarks_Verifier___B'
+        if _type == 'short int':
+            return 'nondetShort_org_sosy_lab_sv_benchmarks_Verifier___S'
+        
+        return 'nondetInt_org_sosy_lab_sv_benchmarks_Verifier___I'
 
     def __str__(self) -> str:
         effect = self.effect
 
         if self.effect in {'allocate', 'java_new_array_data'}:
             effect = 'malloc'
+        if self.effect == 'nondet':
+            effect = SideEffect._get_nondet_unified_func_name(self.nondet_type)
 
         args = ', '.join([str(a) for a in self.args])
         return f'{effect}({args})'

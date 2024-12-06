@@ -3,9 +3,11 @@ from typing import Callable
 
 
 from static import logger
-from processing.data import AssignLine, DeclLine, FunctionCallLine, GotoLine, ProgramLine
-from processing.expressions import Address, Array, Constant, Dereference, Expression, ExpressionType, Index, Member, Nil, Operator, Pointer, SideEffect, Struct, StructTag, Symbol, \
-                                   Typecast, UnaryOperator, OPERATORS, UNARY_OPERATORS
+from processing.program_parts.lines import AssignLine, DeclLine, FunctionCallLine, GotoLine, ProgramLine
+from processing.expressions.expressions import Address, Array, Constant, Dereference, Expression, ExpressionType, \
+                                               Index, Member, Nil, Operator, Pointer, SideEffect, Struct, StructTag, \
+                                                Symbol, Typecast, UnaryOperator
+from processing.expressions.expression_type import OPERATORS, UNARY_OPERATORS
 from structs.assign import Assign
 from structs.call import Call
 from structs.decl import Decl
@@ -21,19 +23,7 @@ class LineProcessor:
     def __init__(self, symbols: SymbolTable) -> None:
         self.symbols = symbols
 
-    def handle_printf(self, instr: Call) -> ProgramLine:
-        arg_type = instr.arguments[1].named_sub.type._type
-        formatting_str = '%d\\n'
-        
-        if arg_type == 'unsigned short int':
-            formatting_str = '%lc\\n'
-        if arg_type in {'double', 'float'}:
-            formatting_str = '%f\\n'
-
-        args = self.stringify(instr.arguments[1])
-        return ProgramLine(line=f'printf("{formatting_str}", {args});', indent=1)
-
-    def to_c_value(self, irep: Irep) -> str:
+    def _to_c_value(self, irep: Irep) -> str:
         assert irep.named_sub.type is not None
         if irep.named_sub.type == 'const char *':
             return f'"{irep.named_sub.value.id}"'
@@ -67,7 +57,7 @@ class LineProcessor:
             return Nil.build()
 
         if expr_type == ExpressionType.Constant:
-            value = self.to_c_value(irep)
+            value = self._to_c_value(irep)
             return Constant.build(value)
 
         if expr_type == ExpressionType.Symbol:
@@ -112,6 +102,8 @@ class LineProcessor:
         if expr_type == ExpressionType.SideEffect:
             effect = irep.named_sub.statement.id
             args = []
+            nondet_type = None
+
             if effect == 'allocate':
                 args = [self.to_expression(irep.sub[0])]
             if effect == 'java_new_array_data':
@@ -124,7 +116,10 @@ class LineProcessor:
                     left=self.to_expression(irep.named_sub.size), 
                     right=Constant.build(value=f'sizeof({unified_type})'))
                 args = [arg]
-            return SideEffect.build(effect, args)
+            if effect == 'nondet':
+                nondet_type = irep.named_sub.type
+
+            return SideEffect.build(effect, args, nondet_type)
 
         if expr_type == ExpressionType.Struct:
             original = irep.named_sub.type.raw_name
@@ -171,7 +166,7 @@ class LineProcessor:
 
         return type_.to_string()
 
-    def process_decl(self, decl: Decl) -> ProgramLine:
+    def _process_decl(self, decl: Decl) -> ProgramLine:
         logger.debug('processing DECL line')
         var_name = self.symbols.unify_symbol_name(decl.name)
         var_type = self.unify_type(decl.var_type)
@@ -182,14 +177,14 @@ class LineProcessor:
 
         return DeclLine(indent=1, var_type=var_type, var_name=var_name, array_width=array_width)
 
-    def process_assign(self, assign: Assign) -> ProgramLine:
+    def _process_assign(self, assign: Assign) -> ProgramLine:
         logger.debug('processing ASSIGN line')
         right = self.to_expression(assign.right)
         left = self.to_expression(assign.left)
 
         return AssignLine(indent=1, lhs=left, rhs=right)
 
-    def process_goto(self, goto: Goto) -> ProgramLine:
+    def _process_goto(self, goto: Goto) -> ProgramLine:
         logger.debug('processing GOTO line')
         label = self.symbols.unify_label(goto.target_to)
         guard = None
@@ -199,7 +194,7 @@ class LineProcessor:
         
         return GotoLine(indent=1, guard=guard, goto_label=label)
 
-    def process_call(self, call: Call) -> ProgramLine:
+    def _process_call(self, call: Call) -> ProgramLine:
         logger.debug('processing CALL line')
         func_name = self.symbols.unify_func_name(call.func_info.name)
         args = [self.to_expression(irep) for irep in call.arguments]
@@ -208,10 +203,10 @@ class LineProcessor:
 
     def get_line(self, instr: GotoInstruction) -> ProgramLine | None:
         process_functions: dict[Instruction, Callable[[GotoInstruction], ProgramLine]] = {
-            Instruction.DECL: self.process_decl,
-            Instruction.ASSIGN: self.process_assign,
-            Instruction.GOTO: self.process_goto,
-            Instruction.FUNCTION_CALL: self.process_call
+            Instruction.DECL: self._process_decl,
+            Instruction.ASSIGN: self._process_assign,
+            Instruction.GOTO: self._process_goto,
+            Instruction.FUNCTION_CALL: self._process_call
         } 
 
         if instr.instruction not in process_functions:
