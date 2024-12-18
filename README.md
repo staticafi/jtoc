@@ -14,7 +14,9 @@ git submodule update --init --recursive
 ```
 2. Then follow the instructions in the file `jbmc/COMPILING.md` and compile the `JBMC`.
 
-3. After the compilation there should be the `JBMC` binary called `jbmc` (If you compiled the project using CMake approach, the binary should be on path `jbmc/build/bin/jbmc`). Move this binary into the folder `jbmc` as `JtoC` expects the `JBMC` binary to be on path `jbmc/jbmc`.
+3. After the compilation there should be the `JBMC` binary called `jbmc` (If you compiled the project using CMake approach, the binary should be on path `jbmc/build/bin/jbmc`). Rename the binary into `jbmc_bin`.
+
+4. Move this binary into the folder `jbmc`. `JtoC` expects the `JBMC` binary to be on path `jbmc/jbmc_bin`.
 
 Now you can start using `JtoC`!
 
