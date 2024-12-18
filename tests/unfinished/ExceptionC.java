@@ -3,7 +3,7 @@ public class ExceptionC {
         throw new IllegalArgumentException();
     }
     public static void main(String[] args) {
-        ExceptionB e = new ExceptionB();
+        ExceptionC e = new ExceptionC();
         e.throwFunc();
         System.out.println("This should not print");
     }
