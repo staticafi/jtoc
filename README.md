@@ -9,7 +9,7 @@ JtoC is a program used for translation of Java 8 programs to C through JBMC's GO
 1. Clone the repository and download the submodules
 ```bash
 git clone https://github.com/staticafi/jtoc.git
-cd jbmc
+cd jtoc/jbmc
 git submodule update --init --recursive
 ```
 2. Then follow the instructions in the file `jbmc/COMPILING.md` and compile the `JBMC`.
