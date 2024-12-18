@@ -1,0 +1,3 @@
+[submodule "jbmc"]
+	path = jbmc
+	url = https://github.com/staticafi/cbmc.git
