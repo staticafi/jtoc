@@ -5,7 +5,7 @@ from processing.program_parts.lines import AssignLine, ProgramLine
 from structs.symbol_table import SymbolTable
 
 
-class MallocPass(ProgramPass):
+class MallocCallPass(ProgramPass):
     def __init__(self, symbols: SymbolTable, functions: list[ProgramFunction]) -> None:
         self.symbols = symbols
         self.functions = functions

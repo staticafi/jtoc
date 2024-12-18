@@ -5,7 +5,6 @@ from typing import Any, Optional
 from static import logger
 from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.source_info import SourceInfo
 
 
 @dataclass
@@ -13,7 +12,6 @@ class GotoInstruction:
     name: str
     instruction: Instruction
     ireps: list[Irep]
-    source_location: Optional[SourceInfo]
     target: Optional[int]
 
     @property
@@ -40,7 +38,6 @@ class GotoInstruction:
             'name': instruction['instruction'],
             'instruction': parsed_instruction,
             'ireps': ireps,
-            'source_location': None,
             'target': target
         }
         

@@ -2,8 +2,10 @@ from pathlib import Path
 
 from processing.line_processor import LineProcessor
 from processing.sections.functions_section import FunctionSection
+from processing.sections.program_section import ProgramSection
 from processing.sections.static_section import StaticSection
 from processing.sections.structs_section import StructsSection
+from static import logger
 from structs.function import GotoFunction
 from structs.symbol_table import SymbolTable
 
@@ -27,12 +29,21 @@ class ProgramProcessor:
         else:
             file = open(write_file, 'w')
         
-        # try:
-        print(self.get_includes(), file=file)
-        self.structs.write_to_file(write_to=file)
-        self.statics.write_to_file(write_to=file)
-        self.functions.write_to_file(write_to=file)
-        # except Exception as ex:
-        #     logger.error(ex)
-        #     if file and not file.closed:
-        #         file.close()
+        sections: list[ProgramSection] = [
+            self.structs,
+            self.statics,
+            self.functions
+        ]
+
+        try:
+            print(self.get_includes(), file=file)
+            for section in sections:
+                section.write_to_file(write_to=file)
+        except Exception as ex:
+            logger.error(ex)
+            if file and not file.closed:
+                file.close()
+            raise ex
+        else:
+            if file and not file.closed:
+                file.close()

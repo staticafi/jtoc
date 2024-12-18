@@ -11,11 +11,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE_DIR = ROOT / 'src'
 TEST_DIR = ROOT / 'tests'
 BENCHMARKS_DIR = ROOT / 'java_benchmarks'
-CAPTURE_DIR = ROOT / 'capture'
 COMPILE_DIR = ROOT / 'out'
 JBMC = SOURCE_DIR / 'jbmc' / 'jbmc'
 
-CAPTURE_DIR.mkdir(exist_ok=True)
 COMPILE_DIR.mkdir(exist_ok=True)
 
 INDENT_WIDTH = 4
@@ -36,6 +34,7 @@ logger.setLevel(logging.INFO)
 
 JTOC_LIBRARY_FUNCTIONS = {
     '___java_lang_String__init___',
+    '___java_lang_String__init_String___',
     '___java_lang_StringBuffer__init_String___',
     '___java_lang_StringBuffer__init___',
     '___java_lang_StringBuilder__init___',
@@ -46,6 +45,7 @@ JTOC_LIBRARY_FUNCTIONS = {
     'compareTo_java_lang_String__String_I',
     'concat_java_lang_String__String_String',
     'contains_java_lang_String__CharSequence_Z',
+    'charAt_java_lang_String__I_C',
     'equals_java_lang_String__Object_Z',
     'endsWith_java_lang_String__String_Z',
     'equalsIgnoreCase_java_lang_String__String_Z',
@@ -63,6 +63,8 @@ JTOC_LIBRARY_FUNCTIONS = {
     'replace_java_lang_String__CharSequenceCharSequence_String',
     'startsWith_java_lang_String__String_Z',
     'startsWith_java_lang_String__StringI_Z',
+    'substring_java_lang_String__I_String',
+    'substring_java_lang_String__II_String',
     'toLowerCase_java_lang_String___String',
     'toString_java_lang_String___String',
     'toUpperCase_java_lang_String___String',
@@ -164,6 +166,7 @@ JTOC_LIBRARY_STATIC = [
     'java_lang_String_compareTo__Ljava_lang_String__I_return_value',
     'java_lang_String_concat__Ljava_lang_String__Ljava_lang_String__return_value',
     'java_lang_String_contains__Ljava_lang_CharSequence__Z_return_value',
+    'java_lang_String_charAt__I_C_return_value',
     'java_lang_String_endsWith__Ljava_lang_String__Z_return_value',
     'java_lang_String_equals__Ljava_lang_Object__Z_return_value',
     'java_lang_String_equalsIgnoreCase__Ljava_lang_String__Z_return_value',
@@ -181,6 +184,8 @@ JTOC_LIBRARY_STATIC = [
     'java_lang_String_replace__Ljava_lang_CharSequence_Ljava_lang_CharSequence__Ljava_lang_String__return_value',
     'java_lang_String_startsWith__Ljava_lang_String_I_Z_return_value',
     'java_lang_String_startsWith__Ljava_lang_String__Z_return_value',
+    'java_lang_String_substring__I_Ljava_lang_String__return_value',
+    'java_lang_String_substring__II_Ljava_lang_String__return_value',
     'java_lang_String_toLowerCase___Ljava_lang_String__return_value',
     'java_lang_String_toString___Ljava_lang_String__return_value',
     'java_lang_String_toUpperCase___Ljava_lang_String__return_value',

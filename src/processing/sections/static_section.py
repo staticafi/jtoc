@@ -7,11 +7,12 @@ from processing.passes.program_pass import ProgramPass
 from processing.passes.unify_null_pass import UnifyNullPass
 from processing.program_parts.complex import ProgramFunction, ProgramStaticVar
 from processing.program_parts.lines import AssignLine, DeclLine, HeaderLine
+from processing.sections.program_section import ProgramSection
 from static import JTOC_LIBRARY_STATIC
 from structs.symbol_table import SymbolTable
 
 
-class StaticSection:
+class StaticSection(ProgramSection):
     def __init__(self, symbols: SymbolTable, processor: LineProcessor,
                  class_models: list[AssignLine]) -> None:
         self.symbols = symbols
@@ -27,7 +28,15 @@ class StaticSection:
     def _handle_literals(self, var_name: str, var_value: Expression) -> None:
         assert isinstance(var_value, Array)
         
-        const_string_value = ''.join([chr(int(str(e))) for e in var_value.elements])
+        chars: list[str] = []
+        for expr in var_value.elements:
+            str_expr = str(expr)
+            if str_expr == '\n':
+                chars.append('\\n')
+            else:
+                chars.append(chr(int(str_expr)))
+
+        const_string_value = ''.join(chars)
         value = Constant.build(value=f'"{const_string_value}"')
 
         static = ProgramStaticVar(unified_name=var_name, var_type='char *', array_width=None, assigned_value=value)
@@ -91,4 +100,4 @@ class StaticSection:
         
         print('\n', file=write_to)
 
-        print(str(self.get_static_initialization_func()), file=write_to)
+        print(str(self.get_static_initialization_func()), '\n', sep='', file=write_to)

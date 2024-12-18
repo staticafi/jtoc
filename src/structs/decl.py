@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from static import logger
+from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.meta import Instruction, GotoInstruction
+from structs.goto_instruction import GotoInstruction
 from structs.type import Type
 
 
@@ -33,7 +34,6 @@ class Decl(GotoInstruction):
             'name': irep.named_sub.identifier.id,
             'instruction': Instruction.DECL,
             'ireps': [irep],
-            'source_location': None,
             'target': target,
             'var_type': irep.named_sub.type
         }

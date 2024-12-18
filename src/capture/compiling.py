@@ -5,22 +5,21 @@ import subprocess
 from pathlib import Path
 
 from capture.capture import Capture
-from structs import GotoFunction
+from structs.function import GotoFunction
 from structs.symbol_table import SymbolTable
 from static import logger, COMPILE_DIR, TEST_DIR
 
 
-def prepare_test_files(filename: str) -> None:
-    logger.info(f'checking existence of provided file {filename}')
-    if not (TEST_DIR / f'{filename}.java').exists():
-        logger.error(f'could not find file {filename} on in directory {TEST_DIR}')
-        raise FileNotFoundError(f'{filename} could not be found')
+def prepare_test_files(filepath: Path) -> None:
+    logger.info(f'checking existence of provided file {filepath.stem}')
+    if not filepath.exists():
+        logger.error(f'could not find file {filepath.stem} in directory {TEST_DIR}')
+        raise FileNotFoundError(f'{filepath.stem} could not be found')
 
-    path = COMPILE_DIR / Path(f'{filename}.java')
+    path = COMPILE_DIR / f'{filepath.stem}.java'
     if not path.exists():
         logger.info('moving java files into compile directory')
-        shutil.copyfile(TEST_DIR / f'{filename}.java', COMPILE_DIR / f'{filename}.java')
-
+        shutil.copyfile(filepath, path)
 
 def compile(filename: str) -> None:
     os.chdir(COMPILE_DIR)

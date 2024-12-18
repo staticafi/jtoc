@@ -2,23 +2,23 @@ from typing import TextIO
 
 from processing.expressions.expressions import ExpressionType, Symbol
 from processing.line_processor import LineProcessor
-from processing.passes.malloc_call_pass import MallocPass
+from processing.passes.malloc_call_pass import MallocCallPass
 from processing.passes.program_pass import ProgramPass
 from processing.passes.unused_functions_pass import UnusedFunctionsPass
 from processing.program_parts.complex import ProgramFunction
-from processing.program_parts.lines import AssignLine, FunctionCallLine, HeaderLine, InputArgument, ProgramLine, TextLine
+from processing.program_parts.lines import AssignLine, FunctionCallLine, HeaderLine, InputParameter, ProgramLine, TextLine
+from processing.sections.program_section import ProgramSection
 from static import logger, JTOC_LIBRARY_FUNCTIONS
 from structs.function import GotoFunction
 from structs.symbol_table import SymbolTable
 
 
-class FunctionSection:
+class FunctionSection(ProgramSection):
     def __init__(self, symbols: SymbolTable, processor: LineProcessor, functions: list[GotoFunction]) -> None:
         self.symbols = symbols
         self.processor = processor
         self._cprover_init_function: ProgramFunction | None = None
         self.functions: list[ProgramFunction] = self._process_all(functions)
-
 
     def _process_all(self, functions: list[GotoFunction]) -> list[ProgramFunction]:
         translated: list[ProgramFunction] = []
@@ -49,14 +49,14 @@ class FunctionSection:
 
         for instr in func.instructions:
             if instr.label:
-                label_line = f'{self.symbols.unify_label(instr.label)}:'
+                label_line = f'{self.symbols.unify_label(instr.label)}:;'
                 lines.append(TextLine(indent=0, text=label_line))
 
             line = self.processor.get_line(instr)
             if line:
                 lines.append(line)
 
-        if 'main' in func.name:
+        if name == 'main':
             lines.append(TextLine(indent=1, text='return 0;'))
 
         return lines
@@ -68,12 +68,12 @@ class FunctionSection:
         return_type = self.symbols.get_func_return_type(func.name)
         unified_return_type = self.processor.unify_type(return_type)
 
-        arg_list: list[InputArgument] = []
+        arg_list: list[InputParameter] = []
         for arg_id in func.signature:
             arg_type = self.symbols.get_symbol_type(arg_id)
             unified_type = self.processor.unify_type(arg_type)
             unified_name = self.symbols.unify_symbol_name(arg_id)
-            arg_list.append(InputArgument(unified_type, unified_name))
+            arg_list.append(InputParameter(unified_type, unified_name))
 
         return HeaderLine(return_type=unified_return_type, unified_name=name, args=arg_list)
 
@@ -87,7 +87,7 @@ class FunctionSection:
 
     def _pass_through_functions(self) -> None:
         passes: list[ProgramPass] = [
-            MallocPass(self.symbols, self.functions),
+            MallocCallPass(self.symbols, self.functions),
             UnusedFunctionsPass(self.symbols, self.functions)
         ]
 

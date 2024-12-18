@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from static import logger
+from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.meta import Instruction, GotoInstruction
+from structs.goto_instruction import GotoInstruction
 
 
 @dataclass
@@ -36,8 +37,7 @@ class Goto(GotoInstruction):
         kwargs = {
             'name': instruction['instruction'],
             'instruction': Instruction.GOTO,
-            'ireps': [irep],  # maybe duplicate of guard
-            'source_location': None,
+            'ireps': [irep],
             'target': target,
             'target_to': target_to,
             'guard': irep

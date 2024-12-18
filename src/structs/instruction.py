@@ -25,4 +25,3 @@ class Instruction(Enum):
 
     def is_guarded(self) -> bool:
         return self.name in {'GOTO', 'ASSUME', 'ASSERT', 'END_FUNCTION'}
-

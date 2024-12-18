@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 
+void do_nothing() {
+    return;
+}
+
+
 // ========== STRING STRUCTS SECTION ==========
 
 struct java_lang_Object
@@ -49,6 +54,7 @@ struct java_lang_StringBuffer
 
 int java_lang_String_compareTo__Ljava_lang_String__I_return_value = -1;
 struct java_lang_String *java_lang_String_concat__Ljava_lang_String__Ljava_lang_String__return_value = NULL;
+char java_lang_String_charAt__I_C_return_value = '\0';
 int java_lang_String_contains__Ljava_lang_CharSequence__Z_return_value = -1;
 int java_lang_String_endsWith__Ljava_lang_String__Z_return_value = -1;
 int java_lang_String_equals__Ljava_lang_Object__Z_return_value = -1;
@@ -67,6 +73,8 @@ struct java_lang_String *java_lang_String_replace__CC_Ljava_lang_String__return_
 struct java_lang_String *java_lang_String_replace__Ljava_lang_CharSequence_Ljava_lang_CharSequence__Ljava_lang_String__return_value = NULL;
 int java_lang_String_startsWith__Ljava_lang_String__Z_return_value = -1;
 int java_lang_String_startsWith__Ljava_lang_String_I_Z_return_value = -1;
+struct java_lang_String *java_lang_String_substring__I_Ljava_lang_String__return_value = NULL;
+struct java_lang_String *java_lang_String_substring__II_Ljava_lang_String__return_value = NULL;
 struct java_lang_String *java_lang_String_toLowerCase___Ljava_lang_String__return_value = NULL;
 struct java_lang_String *java_lang_String_toString___Ljava_lang_String__return_value = NULL;
 struct java_lang_String *java_lang_String_toUpperCase___Ljava_lang_String__return_value = NULL;
@@ -104,6 +112,7 @@ struct java_lang_String *java_lang_CharSequence_toString___Ljava_lang_String__re
 
 
 // ========== STRING FUNCTIONS SECTION ==========
+struct java_lang_String *toString_java_lang_String___String(struct java_lang_String *this);
 
 
 void ___java_lang_String__init___(struct java_lang_String *this)
@@ -111,6 +120,14 @@ void ___java_lang_String__init___(struct java_lang_String *this)
     char *content = malloc(1);
     *content = '\0';
     *(this) = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, 0, content };
+}
+
+
+void ___java_lang_String__init_String___(struct java_lang_String *this, struct java_lang_String *other)
+{
+    struct java_lang_String *new_str = toString_java_lang_String___String(other);
+    this->data = new_str->data;
+    this->length = new_str->length;
 }
 
 
@@ -134,6 +151,19 @@ struct java_lang_String *concat_java_lang_String__String_String(struct java_lang
     *malloc_site = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, length, content };
     java_lang_String_concat__Ljava_lang_String__Ljava_lang_String__return_value = malloc_site;
     return malloc_site;
+}
+
+
+char charAt_java_lang_String__I_C(struct java_lang_String *this, int index)
+{
+    if (index < 0 || index > this->length) {
+        java_lang_StringBuilder_charAt__I_C_return_value = '\0';
+        return '\0';
+    }
+
+    char result = this->data[index];
+    java_lang_String_charAt__I_C_return_value = result;
+    return result;
 }
 
 
@@ -511,6 +541,48 @@ bool startsWith_java_lang_String__String_Z(struct java_lang_String *this, struct
 }
 
 
+
+struct java_lang_String *substring_java_lang_String__I_String(struct java_lang_String *this, int begin)
+{
+    if (begin < 0 || begin > this->length) {
+        java_lang_String_substring__I_Ljava_lang_String__return_value = NULL;
+        return NULL;
+    }
+
+    int length = this->length - begin;
+    char *content = malloc(length + 1);
+    strcpy(content, this->data + begin);
+
+    struct java_lang_String * malloc_site;
+    malloc_site = malloc(16);
+    *malloc_site = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, length, content };
+    java_lang_String_substring__I_Ljava_lang_String__return_value = malloc_site;
+    return malloc_site;
+}
+
+
+struct java_lang_String *substring_java_lang_String__II_String(struct java_lang_String *this, int begin, int end)
+{
+    if (begin < 0 || begin > this->length || end < 0 || end > this->length || begin > end) {
+        java_lang_String_substring__II_Ljava_lang_String__return_value = NULL;
+        return NULL;
+    }
+
+    int length = end - begin;
+    char *content = malloc(length + 1);
+    char ch = this->data[end];
+    this->data[end] = '\0';
+    strcpy(content, this->data + begin);
+    this->data[end] = ch;
+
+    struct java_lang_String * malloc_site;
+    malloc_site = malloc(16);
+    *malloc_site = (struct java_lang_String) { (struct java_lang_Object) { "java::java.lang.String" }, length, content };
+    java_lang_String_substring__II_Ljava_lang_String__return_value = malloc_site;
+    return malloc_site;
+}
+
+
 struct java_lang_String *trim_java_lang_String___String(struct java_lang_String *this)
 {
     struct java_lang_String *new_this = toString_java_lang_String___String(this);
@@ -649,7 +721,7 @@ struct java_lang_StringBuilder *append_java_lang_StringBuilder__StringBuffer_Str
 struct java_lang_StringBuilder *appendCodePoint_java_lang_StringBuilder__I_StringBuilder(struct java_lang_StringBuilder * this, int code_point)
 {
     char ch;
-    if (code_point & 0xff > 255) {
+    if ((code_point & 0xff) > 255) {
         // we do not support Unicode
         ch = code_point & 0xff;
     } else {
@@ -854,7 +926,7 @@ struct java_lang_StringBuffer *append_java_lang_StringBuffer__StringBuffer_Strin
 struct java_lang_StringBuffer *appendCodePoint_java_lang_StringBuffer__I_StringBuffer(struct java_lang_StringBuffer * this, int code_point)
 {
     char ch;
-    if (code_point & 0xff > 255) {
+    if ((code_point & 0xff) > 255) {
         // we do not support Unicode
         ch = code_point & 0xff;
     } else {

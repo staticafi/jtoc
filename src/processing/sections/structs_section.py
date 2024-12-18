@@ -1,14 +1,17 @@
 from typing import TextIO
 
 from processing.line_processor import LineProcessor
+from processing.passes.order_structs_pass import OrderStructsPass
+from processing.passes.program_pass import ProgramPass
 from processing.program_parts.complex import ProgramStruct
 from processing.program_parts.lines import DeclLine
+from processing.sections.program_section import ProgramSection
 from static import JTOC_LIBRARY_STRUCTS
 from structs.type import Type
 from structs.symbol_table import SymbolTable
 
 
-class StructsSection:
+class StructsSection(ProgramSection):
     def __init__(self, symbols: SymbolTable, processor: LineProcessor) -> None:
         self.symbols = symbols
         self.processor = processor
@@ -35,7 +38,17 @@ class StructsSection:
 
         return structs
 
+    def _pass_through_structs(self) -> None:
+        passes: list[ProgramPass] = [
+            OrderStructsPass(self.structs),
+        ]
+
+        for _pass in passes:
+            _pass.do_the_pass()
+
     def write_to_file(self, write_to: TextIO | None) -> None:
+        self._pass_through_structs()
+
         print('// ========== STRUCTS SECTION ==========', file=write_to)
         for struct in self.structs:
             print(struct.header, file=write_to)

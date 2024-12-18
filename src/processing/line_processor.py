@@ -14,7 +14,7 @@ from structs.decl import Decl
 from structs.goto import Goto
 from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.meta import GotoInstruction
+from structs.goto_instruction import GotoInstruction
 from structs.symbol_table import SymbolTable
 from structs.type import Type
 

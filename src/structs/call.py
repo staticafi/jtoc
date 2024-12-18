@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from static import logger
+from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.meta import Instruction, GotoInstruction
+from structs.goto_instruction import GotoInstruction
 from structs.type import Type
 
 @dataclass
@@ -67,7 +68,6 @@ class Call(GotoInstruction):
             'name': func_info.name,
             'instruction': Instruction.FUNCTION_CALL,
             'ireps': [],
-            'source_location': None,
             'target': target,
             'func_info': func_info,
             'arguments': args

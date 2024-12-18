@@ -15,17 +15,12 @@ class Irep:
     component_name: Optional[Irep]
     statement: Optional[Irep]
     type: Optional[Type]
-    is_nondet_nullable: Optional[Irep]
-    java_member_access: Optional[Irep]
-    java_array_access: Optional[Irep]
-    mode: Optional[Irep]
     width: Optional[Irep]
 
     @staticmethod
     def build(obj: dict[str, Any]) -> Irep:
         keywords = {'value', 'identifier', 'size', 'component_name', 
-                    'statement', 'type', 'is_nondet_nullable', 
-                    'java_member_access', 'java_array_access', 'mode', 'width'}
+                    'statement', 'type', 'width'}
 
         kwargs: dict[str, Any] = {
             'id': obj.get('id', 'NOT INCLUDED'),
@@ -37,10 +32,6 @@ class Irep:
             'component_name': None,
             'statement': None,
             'type': None,
-            'is_nondet_nullable': None,
-            'java_member_access': None,
-            'java_array_access': None,
-            'mode': None, 
             'width': None
         }
 

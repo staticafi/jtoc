@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from processing.expressions.expression_type import ExpressionType
-from structs.type import Type, Types
+from structs.type import Type
 
 
 @dataclass

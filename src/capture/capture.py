@@ -1,15 +1,11 @@
 import json
 import os
-import shutil
 import subprocess
 
-from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Literal
 
-from structs import GotoFunction
-from structs.symbol_table import SymbolTable
-from static import logger, JBMC, COMPILE_DIR, CAPTURE_DIR, TEST_DIR
+from static import JBMC, COMPILE_DIR
 
 
 class Capture:
@@ -23,7 +19,7 @@ class Capture:
 
     def _write_into_file(self, content: str, json_ui: bool) -> None:
         name = f'{self._mode}.{"json" if json_ui else "txt"}'
-        path = CAPTURE_DIR / name
+        path = COMPILE_DIR / name
         if not path.parent.exists():
             path.parent.mkdir()
         

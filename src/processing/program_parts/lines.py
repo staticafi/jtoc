@@ -77,7 +77,7 @@ class TextLine(ProgramLine):
 
 
 @dataclass
-class InputArgument:
+class InputParameter:
     arg_type: str
     arg_name: str
 
@@ -89,13 +89,13 @@ class InputArgument:
 class HeaderLine:
     return_type: str
     unified_name: str
-    args: list[InputArgument]
+    args: list[InputParameter]
 
     @staticmethod
     def main_function_header() -> HeaderLine:
         args = [
-            InputArgument(arg_type='int', arg_name='argc'),
-            InputArgument(arg_type='char **', arg_name='argv')
+            InputParameter(arg_type='int', arg_name='argc'),
+            InputParameter(arg_type='char **', arg_name='argv')
         ]
         return HeaderLine(return_type='int', unified_name='main', args=args)
 

@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from static import logger
+from structs.instruction import Instruction
 from structs.irep import Irep
-from structs.meta import Instruction, GotoInstruction
+from structs.goto_instruction import GotoInstruction
 
 
 WRAPPER_IDS = {'member', 'dereference'}
@@ -51,7 +52,6 @@ class Assign(GotoInstruction):
             'name': instruction['instruction'],
             'instruction': Instruction.ASSIGN,
             'ireps': [left, right],
-            'source_location': None,
             'target': target,
             'left': left,
             'right': right
