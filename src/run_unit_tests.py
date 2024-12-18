@@ -1,9 +1,7 @@
-import glob
 import os
 import shutil
 import subprocess
 import unittest
-import yaml
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -61,6 +59,7 @@ class TestBenchmarks(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.clean_files()
         with open(COMPILE_DIR / 'test_summary.txt', 'w') as file:
             for test_suite in cls.results:
                 print(f'Summary of test suite {test_suite}:', file=file)        

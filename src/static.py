@@ -12,7 +12,7 @@ SOURCE_DIR = ROOT / 'src'
 TEST_DIR = ROOT / 'tests'
 BENCHMARKS_DIR = ROOT / 'java_benchmarks'
 COMPILE_DIR = ROOT / 'out'
-JBMC = SOURCE_DIR / 'jbmc' / 'jbmc'
+JBMC = ROOT / 'jbmc' / 'jbmc_bin'
 
 COMPILE_DIR.mkdir(exist_ok=True)
 

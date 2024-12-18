@@ -5,7 +5,6 @@ from pathlib import Path
 from capture.compiling import parse_functions, capture, parse_symbols, compile, prepare_test_files
 from static import COMPILE_DIR, TEST_DIR, logger
 from processing.program_processor import ProgramProcessor
-from structs.assign import Assign
 
 
 def process_input(file: str, where_to: Path | None=None) -> None:
@@ -17,18 +16,6 @@ def process_input(file: str, where_to: Path | None=None) -> None:
 
     functions = parse_functions(goto)
     symbols = parse_symbols(symbol)
-
-    bar = functions[2]
-    assign = bar.instructions[0]
-
-    assert isinstance(assign, Assign)
-    print(assign.instruction)
-    print(assign.target)
-    print(assign.left)
-    print(assign.right)
-
-
-
 
     processor = ProgramProcessor(symbols, functions)
     processor.write_to_file(where_to)
